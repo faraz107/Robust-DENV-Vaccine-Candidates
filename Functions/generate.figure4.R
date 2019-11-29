@@ -45,7 +45,7 @@ generate.figure4 <- function(ProteinDatatableOut, ...) {
     
       g <- g + scale_x_continuous(limit = c(1,620), breaks = seq.int(100,600,100), expand=c(0,0))
       g <- g + scale_y_continuous(breaks = seq.int(1,8), limits = c(0,8.5), expand=c(0,0))
-      g <- g + ylab("No. of epitopes") + xlab("NS3 amino acid position") + ggtitle("")
+      g <- g + ylab("No. of epitopes") + xlab("Amino acid position") + ggtitle("")
       
       g <- g + theme_bw() + theme(strip.background = element_blank(), 
                                   legend.position = "none", 
@@ -105,7 +105,7 @@ generate.figure4 <- function(ProteinDatatableOut, ...) {
       
       g <- g + scale_x_continuous(limit = c(1,900), breaks = seq.int(150,900,150), expand=c(0,0))
       g <- g + scale_y_continuous(breaks = seq.int(1,8), limits = c(0,8.5), expand=c(0,0))
-      g <- g + ylab("No. of epitopes") + xlab("NS5 amino acid position") + ggtitle("")
+      g <- g + ylab("No. of epitopes") + xlab("Amino acid position") + ggtitle("")
     
       g <- g + theme_bw() + theme(strip.background = element_blank(), 
                                   legend.position = "none", 
@@ -176,12 +176,28 @@ generate.figure4 <- function(ProteinDatatableOut, ...) {
       
       gempty <- ggplot(data = tep_df) + theme_void()
       
-      fig_tmp <- ggarrange(g_NS5,
+      fig_NS5 <- ggarrange(g_NS5,
                            g_prot_NS5,
-                           g_NS3,
+                           ncol = 2, nrow = 1, widths = c(0.5, 1), align = "hv", legend = "none",
+                           labels = c("", ""), 
+                           font.label = list(font = "plain", size = 10))
+
+      fig_NS5 <- annotate_figure(fig_NS5, 
+                                 top = text_grob("DENV NS5 protien", color = "black", face = "bold", size = 12, just = "center"))
+      
+      fig_NS3 <- ggarrange(g_NS3,
                            g_prot_NS3,
-                           ncol = 2, nrow = 2, widths = c(0.5, 1), heights = c(1, 1), align = "hv", legend = "none",
-                           labels = c("A", "", "B", ""),
+                           ncol = 2, nrow = 1, widths = c(0.5, 1), align = "hv", legend = "none",
+                           labels = c("", ""), 
+                           font.label = list(font = "plain", size = 10))
+      
+      fig_NS3 <- annotate_figure(fig_NS3, 
+                                  top = text_grob("DENV NS3 protien", color = "black", face = "bold", size = 12, just = "center"))
+      
+      fig_tmp <- ggarrange(fig_NS5,
+                           fig_NS3,
+                           ncol = 1, nrow = 2, heights = c(1, 1), align = "hv", legend = "none",
+                           labels = c("A", "B"),
                            font.label = list(font = "plain", size = 10))
     }
       

@@ -29,11 +29,15 @@ generate.figure3 <- function(ProteinDatatableOut, ...) {
   
   # Split-tiles
   
-  df3 <- df2 %>% filter(meanIDrank <= round(max(df2$meanIDrank)/2))
-
+  splitings <- max(df2$facetID)/3 * c(1,2,3)
+  
+  df2$splitings <- if_else(condition = (df2$facetID >= splitings[2]), true = 1, 
+                           false = if_else(condition = (df2$facetID >= splitings[1]) & (df2$facetID < splitings[2]), 
+                                           true = 2, false = 3))
+  
   suppressWarnings({
     
-    gf <- ggplot(data = df3, mapping = aes(x = IdDkey, y = `Epitope Sequence`, fill = IdDvalue))
+    gf <- ggplot(data = df2, mapping = aes(x = IdDkey, y = `Epitope Sequence`, fill = IdDvalue))
     
     gf <- gf + geom_tile(color = "grey60", width = 0.40, height = 0.60)
     
@@ -46,7 +50,7 @@ generate.figure3 <- function(ProteinDatatableOut, ...) {
                                    name = "Fraction of sequences") 
     
     
-    gf <- gf + geom_rect(xmin = -2, xmax = 0, ymin = 0, ymax = nrow(df3) + 1, fill = "white") + expand_limits(x = -2)
+    gf <- gf + geom_rect(xmin = -2, xmax = 0, ymin = 0, ymax = nrow(df2) + 1, fill = "white") + expand_limits(x = -2)
     
     gf <- gf + geom_text(aes(color = Protein, label = `Epitope Sequence`, angle = 0, hjust = 0), size = 2, fontface = "plain", x = -2, fill = NA, show.legend = TRUE) 
     
@@ -84,123 +88,14 @@ generate.figure3 <- function(ProteinDatatableOut, ...) {
                                        size = 2.25), 
                                 label = FALSE, title = NULL)) 
     
-    
-    g3f <- ggplot(data = df3, mapping = aes(x = `Epitope Sequence`, y = (meanID/4)))
-    g3f <- g3f + geom_col(width = 0.5) 
-    g3f <- g3f + scale_y_continuous(breaks = c(0, 0.5, 0.75, 1), labels = c("0", "0.5", "", "1"), position = "right")
-    
-    g3f <- g3f + theme(panel.grid = element_blank(), 
-                       plot.background = element_blank(), 
-                       panel.background = element_blank())
-    
-    g3f <- g3f + xlab("") + ylab("Mean conservation\nacross serotypes") + coord_flip(clip = "on", ylim = c(0.5, 1))
-    g3f <- g3f + theme(axis.text.x = element_text(size = 8), 
-                       axis.ticks = element_blank(), 
-                       axis.title.y = element_blank(), axis.text.y = element_blank(), 
-                       axis.title.x = element_text(face = "bold", size = 7.5, margin = 0)) 
-    
-    g3f <- g3f + theme(axis.line.y = element_line(color = "grey45")) 
-    
-    g3f <- g3f + geom_segment(y = 0, yend = 1.0, x = dim(df3)[1]/4+0.6, xend = dim(df3)[1]/4+0.6, color = "grey45", show.legend = FALSE) + 
-      guides(color = FALSE)
-    
-    gf <- gf + theme(plot.margin = unit(c(0,0,0,0), "pt"))    
-    
-    g3f <- g3f + theme(plot.margin = unit(c(0,0,0,0), "cm"))
-    
     gempty <- ggplot(data = df) + theme_void()
     
-    gf_1 <- gf
-    g3f_1 <- g3f
-    
-    fig_tmp1 <- ggarrange(gf, g3f, ncol = 2, nrow = 1, widths = c(3.5,1), align = "hv", 
-                          common.legend = TRUE, legend = "bottom")
-    
+    gf <- gf + facet_wrap(facets = vars(splitings), scales = "free")
+      
   })
   
-  df3 <- df2 %>% filter(meanIDrank > round(max(df2$meanIDrank)/2))
+  fig_tmp <- gf
   
-  suppressWarnings({
-    
-    gf <- ggplot(data = df3, mapping = aes(x = IdDkey, y = `Epitope Sequence`, fill = IdDvalue))
-    
-    gf <- gf + geom_tile(color = "grey60", width = 0.40, height = 0.60)
-    
-    gf <- gf + scale_fill_gradient(low = "white",# brewer.pal(9, "PuBu")[1],
-                                   high = brewer.pal(9, "PuBu")[9],
-                                   guide = "colorbar", 
-                                   limits = c(0,1),
-                                   breaks = c(0, 0.5, 1),
-                                   labels = c("0", "0.5", "1"),
-                                   name = "Fraction of sequences") 
-    
-    
-    gf <- gf + geom_rect(xmin = -2, xmax = 0, ymin = 0, ymax = nrow(df3) + 1, fill = "white") + expand_limits(x = -2)
-    
-    gf <- gf + geom_text(aes(color = Protein, label = `Epitope Sequence`, angle = 0, hjust = 0), size = 2, fontface = "plain", x = -2, fill = NA, show.legend = TRUE) 
-    
-    gf <- gf + scale_colour_manual(values = colorings, name = "Protein")
-    
-    gf <- gf + theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), panel.background = element_rect(fill = "white"))
-    
-    gf <- gf + ylab("") + xlab("") + scale_x_discrete(position = "top")
-    
-    gf <- gf + theme(axis.text.x = element_text(angle = 90, size = 8, hjust = 0.5,  vjust = 0.5, color = "grey5", face = "bold"), axis.ticks.x = element_blank())
-    
-    gf <- gf + theme(panel.grid = element_blank(),
-                     strip.background = element_blank(),
-                     strip.text = element_blank(), axis.ticks.y = element_blank(),
-                     axis.text.y = element_blank(),
-                     plot.title = element_text(size = 15, face = "bold", hjust = 1, vjust = 0.5),
-                     plot.subtitle = element_blank(),
-                     axis.title.y = element_text(face = "bold", hjust = 0.5),
-                     axis.title.x = element_blank(),
-                     legend.title = element_text(size = 9),
-                     legend.text = element_text(size = 8), legend.spacing.x = unit(5, "mm"),
-                     legend.key = element_rect(fill = "white", color = "white"),
-                     legend.key.size = unit(x = 10, units = "pt"), legend.box = "vertical",
-                     legend.position = "none", legend.spacing.y = unit(-1, "pt"))
-    
-    gf <- gf + theme(panel.spacing.x = unit(0, "lines"))
-    
-    g3f <- ggplot(data = df3, mapping = aes(x = `Epitope Sequence`, y = (meanID/4)))
-    g3f <- g3f + geom_col(width = 0.5) 
-    g3f <- g3f + scale_y_continuous(breaks = c(0, 0.5, 0.75, 1), labels = c("0", "0.5", "", "1"), position = "right")
-    
-    g3f <- g3f + theme(panel.grid = element_blank(), 
-                       plot.background = element_blank(), 
-                       panel.background = element_blank())
-    
-    g3f <- g3f + xlab("") + ylab("Mean conservation\nacross serotypes") + coord_flip(clip = "on", ylim = c(0.5, 1))
-    g3f <- g3f + theme(axis.text.x = element_text(size = 8), 
-                       axis.ticks = element_blank(), 
-                       axis.title.y = element_blank(), axis.text.y = element_blank(), 
-                       axis.title.x = element_text(face = "bold", size = 7.5)) 
-    
-    g3f <- g3f + theme(axis.line.y = element_line(color = "grey45")) 
-    
-    g3f <- g3f + geom_segment(y = 0, yend = 1.0, x = dim(df3)[1]/4+0.6, xend = dim(df3)[1]/4+0.6, color = "grey45", show.legend = FALSE) + 
-      guides(color = FALSE)
-    
-    gf <- gf + theme(plot.margin = unit(c(0,0,0,0), "pt"))    
-    
-    g3f <- g3f + theme(plot.margin = unit(c(0,0,0,0), "cm"))
-    
-    gempty <- ggplot(data = df) + theme_void()
-    
-    gf_2 <- gf
-    g3f_2 <- g3f
-    
-    fig_tmp2 <- ggarrange(gf, g3f, ncol = 2, nrow = 1, widths = c(3.5,1), align = "hv", 
-                          common.legend = TRUE, legend = "bottom")
-    
-  })
-  
-  fig_tmp <- ggarrange(gf_1, g3f_1, gempty, 
-                       gf_2, g3f_2, gempty, 
-                       ncol = 6, nrow = 1, 
-                       widths = c(3.5,1, 0.25, 3.5,1, 0.25), align = "hv", 
-                       common.legend = TRUE, legend = "bottom")
   
 fig_tmp
 
