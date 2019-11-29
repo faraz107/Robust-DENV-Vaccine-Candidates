@@ -14,10 +14,11 @@ Following
 file, it will check if these are installed and attempt to install them.
 Tested to work on **Windows** and **Mac** operating sytems.
 
-“here” |“rmarkdown” | “RColorBrewer” | “tidyverse” | “ggpubr” | “seqinr”
-“readxl” | “readr” | “DT” | “htmltools” | “webshot” | “magick”
-“gridExtra” | “formattable” | “glue” | “maps” | “reticulate” | “BALCONY”
-“grid” | “BiocManager” | “msa”, “Biostrings”
+——- | ———- | ————- | ———– | ——– | ——– “here” |“rmarkdown” |
+“RColorBrewer” | “tidyverse” | “ggpubr” | “seqinr” “readxl” | “readr” |
+“DT” | “htmltools” | “webshot” | “magick” “gridExtra” | “formattable” |
+“glue” | “maps” | “reticulate” | “BALCONY” “grid” | “BiocManager” |
+“msa”, “Biostrings”
 
 > For **Linux** operating system, may need to install the above packages
 > and their dependencies separately.
