@@ -9,10 +9,10 @@ Binder](http://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/faraz107
 Latest version of **R** (version 3.6.0 or later) and **RStudio**
 (version 1.2.5 or later) installed.
 
-Following
-`**R** packages and their dependencies are required. Upon first run of`init.R\`
-file, it will check if these are installed and attempt to install them.
-Tested to work on **Windows** and **Mac** operating sytems.
+Following `**R**` packages and their dependencies are required. Upon
+first run of `init.R` file, it will check if these are installed and
+attempt to install them. Tested to work on **Windows** and **Mac**
+operating sytems.
 
     + here 
     + rmarkdown 
