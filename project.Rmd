@@ -561,9 +561,9 @@ g1f <- g1f + scale_y_continuous(breaks = c(0, 0.25, 0.50),
                                 labels = c("0%", "25%", "50%"), 
                                 position = "right")
 
-g1f <- g1f + scale_fill_manual(labels = c("Class I", "Class II"), 
+g1f <- g1f + scale_fill_manual(labels = c("HLA class I", "HLA class II"), 
                                values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), 
-                               name = "HLA allele")
+                               name = "")
 
 g1f <- g1f + xlab("Associated   HLA   allele(s)") + 
   ylab("Individual\ncoverage") + 

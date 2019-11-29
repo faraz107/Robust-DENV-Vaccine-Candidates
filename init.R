@@ -18,4 +18,8 @@ if(length(new_packages)){
   BiocManager::install(c("msa", "Biostrings"))
 }
 
-webshot::install_phantomjs()
+if(is.null(webshot:::find_phantom())){
+  webshot::install_phantomjs()
+}
+
+
