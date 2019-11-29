@@ -1,0 +1,295 @@
+Population Area,Population Country,Population Ethnicity
+East Asia,,
+East Asia,Japan,-
+East Asia,Japan,Oriental
+East Asia,Korea; South,-
+East Asia,Korea; South,Oriental
+East Asia,Mongolia,-
+East Asia,Mongolia,Oriental
+Northeast Asia,,
+Northeast Asia,China,-
+Northeast Asia,China,Oriental
+Northeast Asia,Hong Kong,-
+Northeast Asia,Hong Kong,Oriental
+South Asia,,
+South Asia,India,-
+South Asia,India,Asian
+South Asia,Pakistan,-
+South Asia,Pakistan,Asian
+South Asia,Pakistan,Mixed
+South Asia,Sri Lanka,-
+South Asia,Sri Lanka,Asian
+Southeast Asia,,
+Southeast Asia,Borneo,-
+Southeast Asia,Borneo,Austronesian
+Southeast Asia,Indonesia,-
+Southeast Asia,Indonesia,Austronesian
+Southeast Asia,Malaysia,-
+Southeast Asia,Malaysia,Austronesian
+Southeast Asia,Malaysia,Oriental
+Southeast Asia,Philippines,-
+Southeast Asia,Philippines,Austronesian
+Southeast Asia,Singapore,-
+Southeast Asia,Singapore,Austronesian
+Southeast Asia,Singapore,Oriental
+Southeast Asia,Taiwan,-
+Southeast Asia,Taiwan,Oriental
+Southeast Asia,Thailand,-
+Southeast Asia,Thailand,Oriental
+Southeast Asia,Vietnam,-
+Southeast Asia,Vietnam,Oriental
+Southwest Asia,,
+Southwest Asia,Iran,-
+Southwest Asia,Iran,Kurd
+Southwest Asia,Iran,Persian
+Southwest Asia,Israel,-
+Southwest Asia,Israel,Arab
+Southwest Asia,Israel,Jew
+Southwest Asia,Jordan,-
+Southwest Asia,Jordan,Arab
+Southwest Asia,Lebanon,-
+Southwest Asia,Lebanon,Arab
+Southwest Asia,Lebanon,Mixed
+Southwest Asia,Oman,-
+Southwest Asia,Oman,Arab
+Southwest Asia,Saudi Arabia,-
+Southwest Asia,Saudi Arabia,Arab
+Southwest Asia,United Arab Emirates,-
+Southwest Asia,United Arab Emirates,Arab
+Europe,,
+Europe,Austria,-
+Europe,Austria,Caucasoid
+Europe,Belarus,-
+Europe,Belarus,Caucasoid
+Europe,Belgium,-
+Europe,Belgium,Caucasoid
+Europe,Bulgaria,-
+Europe,Bulgaria,Caucasoid
+Europe,Bulgaria,Other
+Europe,Croatia,-
+Europe,Croatia,Caucasoid
+Europe,Czech Republic,-
+Europe,Czech Republic,Caucasoid
+Europe,Czech Republic,Other
+Europe,Denmark,-
+Europe,Denmark,Caucasoid
+Europe,England,-
+Europe,England,Caucasoid
+Europe,England,Jew
+Europe,England,Mixed
+Europe,Finland,-
+Europe,Finland,Caucasoid
+Europe,France,-
+Europe,France,Caucasoid
+Europe,Georgia,-
+Europe,Georgia,Caucasoid
+Europe,Georgia,Kurd
+Europe,Germany,-
+Europe,Germany,Caucasoid
+Europe,Greece,-
+Europe,Greece,Caucasoid
+Europe,Ireland Northern,-
+Europe,Ireland Northern,Caucasoid
+Europe,Ireland South,-
+Europe,Ireland South,Caucasoid
+Europe,Italy,-
+Europe,Italy,Caucasoid
+Europe,Macedonia,-
+Europe,Macedonia,Caucasoid
+Europe,Netherlands,-
+Europe,Netherlands,Caucasoid
+Europe,Norway,-
+Europe,Norway,Caucasoid
+Europe,Poland,-
+Europe,Poland,Caucasoid
+Europe,Portugal,-
+Europe,Portugal,Caucasoid
+Europe,Romania,-
+Europe,Romania,Caucasoid
+Europe,Russia,-
+Europe,Russia,Caucasoid
+Europe,Russia,Mixed
+Europe,Russia,Other
+Europe,Russia,Siberian
+Europe,Scotland,-
+Europe,Scotland,Caucasoid
+Europe,Serbia,-
+Europe,Serbia,Caucasoid
+Europe,Slovakia,-
+Europe,Slovakia,Caucasoid
+Europe,Slovenia,-
+Europe,Slovenia,Caucasoid
+Europe,Spain,-
+Europe,Spain,Caucasoid
+Europe,Spain,Jew
+Europe,Spain,Other
+Europe,Sweden,-
+Europe,Sweden,Caucasoid
+Europe,Switzerland,-
+Europe,Switzerland,Caucasoid
+Europe,Turkey,-
+Europe,Turkey,Caucasoid
+Europe,Ukraine,-
+Europe,Ukraine,Caucasoid
+Europe,United Kingdom,-
+Europe,United Kingdom,Caucasoid
+Europe,Wales,-
+Europe,Wales,Caucasoid
+East Africa,,
+East Africa,Kenya,-
+East Africa,Kenya,Black
+East Africa,Uganda,-
+East Africa,Uganda,Black
+East Africa,Zambia,-
+East Africa,Zambia,Black
+East Africa,Zimbabwe,-
+East Africa,Zimbabwe,Black
+West Africa,,
+West Africa,Burkina Faso,-
+West Africa,Burkina Faso,Black
+West Africa,Cape Verde,-
+West Africa,Cape Verde,Black
+West Africa,Gambia,-
+West Africa,Gambia,Black
+West Africa,Ghana,-
+West Africa,Ghana,Black
+West Africa,Guinea-Bissau,-
+West Africa,Guinea-Bissau,Black
+West Africa,Ivory Coast,-
+West Africa,Ivory Coast,Black
+West Africa,Liberia,-
+West Africa,Liberia,Black
+West Africa,Nigeria,-
+West Africa,Nigeria,Black
+West Africa,Senegal,-
+West Africa,Senegal,Black
+Central Africa,,
+Central Africa,Cameroon,-
+Central Africa,Cameroon,Black
+Central Africa,Central African Republic,-
+Central Africa,Central African Republic,Black
+Central Africa,Congo,-
+Central Africa,Congo,Black
+Central Africa,Equatorial Guinea,-
+Central Africa,Equatorial Guinea,Black
+Central Africa,Gabon,-
+Central Africa,Gabon,Black
+Central Africa,Rwanda,-
+Central Africa,Rwanda,Black
+Central Africa,Sao Tome and Principe,-
+Central Africa,Sao Tome and Principe,Black
+North Africa,,
+North Africa,Algeria,-
+North Africa,Algeria,Arab
+North Africa,Ethiopia,-
+North Africa,Ethiopia,Black
+North Africa,Mali,-
+North Africa,Mali,Black
+North Africa,Morocco,-
+North Africa,Morocco,Arab
+North Africa,Morocco,Caucasoid
+North Africa,Sudan,-
+North Africa,Sudan,Arab
+North Africa,Sudan,Black
+North Africa,Sudan,Mixed
+North Africa,Tunisia,-
+North Africa,Tunisia,Arab
+North Africa,Tunisia,Berber
+South Africa,,
+South Africa,South Africa,-
+South Africa,South Africa,Black
+South Africa,South Africa,Other
+West Indies,,
+West Indies,Cuba,-
+West Indies,Cuba,Caucasoid
+West Indies,Cuba,Mixed
+West Indies,Cuba,Mulatto
+West Indies,Jamaica,-
+West Indies,Jamaica,Black
+West Indies,Martinique,-
+West Indies,Martinique,Black
+West Indies,Trinidad and Tobago,-
+West Indies,Trinidad and Tobago,Asian
+North America,,
+North America,Canada,-
+North America,Canada,Amerindian
+North America,Mexico,-
+North America,Mexico,Amerindian
+North America,Mexico,Mestizo
+North America,United States,-
+North America,United States,Amerindian
+North America,United States,Asian
+North America,United States,Austronesian
+North America,United States,Black
+North America,United States,Caucasoid
+North America,United States,Hispanic
+North America,United States,Mestizo
+North America,United States,Polynesian
+Central America,,
+Central America,Costa Rica,-
+Central America,Costa Rica,Mestizo
+Central America,Guatemala,-
+Central America,Guatemala,Amerindian
+South America,,
+South America,Argentina,-
+South America,Argentina,Amerindian
+South America,Argentina,Caucasoid
+South America,Bolivia,-
+South America,Bolivia,Amerindian
+South America,Brazil,-
+South America,Brazil,Amerindian
+South America,Brazil,Caucasoid
+South America,Brazil,Mixed
+South America,Brazil,Mulatto
+South America,Brazil,Other
+South America,Chile,-
+South America,Chile,Amerindian
+South America,Chile,Hispanic
+South America,Chile,Mixed
+South America,Colombia,-
+South America,Colombia,Amerindian
+South America,Colombia,Black
+South America,Colombia,Mestizo
+South America,Ecuador,-
+South America,Ecuador,Amerindian
+South America,Ecuador,Black
+South America,Paraguay,-
+South America,Paraguay,Amerindian
+South America,Peru,-
+South America,Peru,Amerindian
+South America,Peru,Mestizo
+South America,Venezuela,-
+South America,Venezuela,Amerindian
+South America,Venezuela,Caucasoid
+South America,Venezuela,Mestizo
+South America,Venezuela,Mixed
+Oceania,,
+Oceania,American Samoa,-
+Oceania,American Samoa,Polynesian
+Oceania,Australia,-
+Oceania,Australia,Australian Aborigines
+Oceania,Australia,Caucasoid
+Oceania,Chile,-
+Oceania,Chile,Amerindian
+Oceania,Cook Islands,-
+Oceania,Cook Islands,Polynesian
+Oceania,Fiji,-
+Oceania,Fiji,Melanesian
+Oceania,Kiribati,-
+Oceania,Kiribati,Micronesian
+Oceania,Nauru,-
+Oceania,Nauru,Micronesian
+Oceania,New Caledonia,-
+Oceania,New Caledonia,Melanesian
+Oceania,New Zealand,-
+Oceania,New Zealand,Polynesian
+Oceania,Niue,-
+Oceania,Niue,Polynesian
+Oceania,Papua New Guinea,-
+Oceania,Papua New Guinea,Melanesian
+Oceania,Samoa,-
+Oceania,Samoa,Polynesian
+Oceania,Tokelau,-
+Oceania,Tokelau,Polynesian
+Oceania,Tonga,-
+Oceania,Tonga,Polynesian

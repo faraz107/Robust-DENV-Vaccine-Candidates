@@ -1,0 +1,729 @@
+---
+title: "Project"
+author: "written by: Syed Faraz Ahmed"
+date: "run at: `r format(Sys.time())`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r packages, message=FALSE, warning=FALSE, include=FALSE, eval=TRUE}
+
+## R Packages
+# Loads the required R packages.
+
+list_packages <-  list("here", "RColorBrewer", "tidyverse", "ggpubr", "seqinr",
+                       "readxl",  "readr", "DT", "htmltools", "webshot", "magick", "grid",
+                       "gridExtra", "formattable", "glue", "maps", "reticulate", "msa", "Biostrings")
+
+invisible(lapply(list_packages, library, character.only = TRUE))
+
+```
+
+```{r Parameters, include=FALSE}
+
+## Parameters
+# Set the global parameters.  
+
+  RUN_MSA_PROCESSING = FALSE
+  RUN_PROTEIN_ANALYSIS = FALSE
+  RUN_POPULATION_COVERAGE = FALSE
+  
+  GAPratio = 0.15
+  NUM_MAX_MISMATCH = 0
+  ID_THRESH = 0.90
+
+```
+
+```{r Epitope data, include=FALSE}
+
+## Initial setting up of T cell epitopes data
+
+ExEpiTcell_DENV_full <- as.data.frame(read_excel(here("Data/ViPR_epitope_data", "Results.xls"), sheet = "Results"))
+
+ExEpiTcell_DENV_full %>% separate_rows(Host, `Assay Type Category`, `Assay Result`, `MHC Allele Name`, `MHC Allele Class`, Method, Measurement, sep = ",") -> ExEpiTcell_DENV_full
+
+  ExEpiTcell_DENV <- ExEpiTcell_DENV_full %>% 
+    filter(Host == "Human" & 
+             str_detect(string = `Assay Result`, pattern = "Positive") &
+             str_detect(string = `Assay Type Category`, pattern = "T")) %>%
+    filter(!str_detect(string = `MHC Allele Name`, pattern = "N/A")) %>% 
+    filter(!str_detect(string = `MHC Allele Name`, pattern = "class")) %>%
+    select(`IEDB ID`, `Epitope Sequence`, `MHC Allele Name`, `MHC Allele Class`) %>% 
+  group_by(`IEDB ID`, `Epitope Sequence`) %>% 
+    distinct_at(vars(`MHC Allele Name`), .keep_all = TRUE) %>% 
+    summarise(`MHC Allele Names` = paste(`MHC Allele Name`, collapse = ","), 
+              `MHC Allele Classes` = unique(`MHC Allele Class`)) %>% 
+    ungroup()
+ 
+  write.fasta(
+    sequences = as.list(ExEpiTcell_DENV$`Epitope Sequence`), 
+              names = ExEpiTcell_DENV$`IEDB ID`, 
+              file.out = here("Data", "TepitopesDENV.fa"))
+
+```
+
+```{r Protein data, include=FALSE, eval=RUN_PROTEIN_ANALYSIS}
+
+## Analyzing protein data
+
+source(here("Functions", "analyze.protein.R"))
+
+# Analyzing E -------
+E_analysis_out <- analyze.protein(PROTEIN = "E", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing prM -------
+prM_analysis_out <- analyze.protein(PROTEIN = "prM", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing C -------
+C_analysis_out <- analyze.protein(PROTEIN = "C", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing NS1 -------
+NS1_analysis_out <- analyze.protein(PROTEIN = "NS1", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing NS2a -------
+NS2a_analysis_out <- analyze.protein(PROTEIN = "NS2a", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing NS2b -------
+NS2b_analysis_out <- analyze.protein(PROTEIN = "NS2b", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing NS3 -------
+NS3_analysis_out <- analyze.protein(PROTEIN = "NS3", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing NS4a -------
+NS4a_analysis_out <- analyze.protein(PROTEIN = "NS4a", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing NS4b -------
+NS4b_analysis_out <- analyze.protein(PROTEIN = "NS4b", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing NS5 -------
+NS5_analysis_out <- analyze.protein(PROTEIN = "NS5", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+save(list = c("ExEpiTcell_DENV",
+                "E_analysis_out",		
+                "prM_analysis_out", 	
+                "C_analysis_out", 		
+                "NS1_analysis_out",	
+                "NS2a_analysis_out",	
+                "NS2b_analysis_out",	
+                "NS3_analysis_out",	
+                "NS4a_analysis_out",	
+                "NS4b_analysis_out",	
+                "NS5_analysis_out"), 
+        file = here("Data", "protein_analyses_out.Rdata"))
+
+```
+
+```{r Processing data, include=FALSE}
+
+## Processing data
+
+load(file = here("Data", "protein_analyses_out.Rdata"))
+
+source(here("Functions", "prepare.datatable.R"))
+
+protein_datatable_out <- prepare.datatable(ExEpiTcell = ExEpiTcell_DENV, 
+                                           AnalyzedProteins = list(E_analysis_out[[1]],
+                                                              prM_analysis_out[[1]],
+                                                              C_analysis_out[[1]],
+                                                              NS1_analysis_out[[1]],
+                                                              NS2a_analysis_out[[1]],
+                                                              NS2b_analysis_out[[1]],
+                                                              NS3_analysis_out[[1]],
+                                                              NS4a_analysis_out[[1]],
+                                                              NS4b_analysis_out[[1]],
+                                                              NS5_analysis_out[[1]]), 
+                                           NameProteins = list("E", "prM", "C",
+                                                              "NS1", "NS2a", "NS2b",
+                                                              "NS3", "NS4a", "NS4b", "NS5"),
+                                           ID_THRESH = ID_THRESH)
+
+saveRDS(object = protein_datatable_out, file = here("Data", "protein_datatable_out.Rds"))
+
+```
+
+```{r Preparing datatable, include=FALSE}
+
+## Preparing datatable 
+
+rmarkdown::render(input = here("DENV_Epitopes_Table.Rmd"), output_dir = here("Tool"))
+
+```
+
+```{r Figure-1, echo=FALSE}
+
+## Generating Figure-1
+
+load(file = here("Data", "protein_analyses_out.Rdata"))
+
+source(here("Functions", "setup.formattable.R"))
+source(here("Functions", "generate.figure1.R"))
+
+fig_tmp <- generate.figure1(ProteinNumSeqs = list(E_analysis_out[[2]],
+                                                 prM_analysis_out[[2]],
+                                                 C_analysis_out[[2]],
+                                                 NS1_analysis_out[[2]],
+                                                 NS2a_analysis_out[[2]],
+                                                 NS2b_analysis_out[[2]],
+                                                 NS3_analysis_out[[2]],
+                                                 NS4a_analysis_out[[2]],
+                                                 NS4b_analysis_out[[2]],
+                                                 NS5_analysis_out[[2]]), 
+                 NameProteins = list("E", "prM", "C",
+                                     "NS1", "NS2a", "NS2b",
+                                     "NS3", "NS4a", "NS4b", "NS5"), 
+                 ProteinTypes = list("DENV1", "DENV2", "DENV3", "DENV4"))
+
+ggsave(filename = here("Figure", "Figure-1.png"), 
+       plot = fig_tmp, device = "png", 
+       width = 6, height = 8, units = "in", 
+       dpi = 1200)
+
+
+
+```
+
+```{r Figure-2, echo=FALSE}
+
+## Generating Figure-2
+
+protein_datatable_out <- readRDS(here("Data", "protein_datatable_out.Rds"))
+
+source(here("Functions", "setup.formattable.R"))
+source(here("Functions", "generate.figure2.R"))
+
+fig_tmp <- generate.figure2(ProteinDatatableOut = protein_datatable_out)
+
+ggsave(filename = here("Figure", "Figure-2.png"), 
+       plot = fig_tmp, 
+       height = 10, width = 7.5, units = "in", 
+       dpi=600)
+
+
+
+```
+
+```{r Figure-3, echo=FALSE}
+
+## Generating Figure-3
+
+protein_datatable_out <- readRDS(here("Data", "protein_datatable_out.Rds"))
+
+source(here("Functions", "generate.figure3.R"))
+fig_tmp <- generate.figure3(ProteinDatatableOut = protein_datatable_out)
+
+ggsave(filename = here("Figure", "Figure-3.png"), 
+       plot = fig_tmp, device = "png", 
+       width = 7.5, height = 5, units = "in", 
+       dpi = 300)
+
+
+
+```
+
+```{r Figure-4, echo=FALSE}
+
+## Generating Figure-4
+
+protein_datatable_out <- readRDS(here("Data", "protein_datatable_out.Rds"))
+
+source(here("Functions", "generate.figure4.R"))
+fig_tmp <- generate.figure4(ProteinDatatableOut = protein_datatable_out)
+
+ggsave(filename = here("Figure", "Figure-4.png"), 
+       plot = fig_tmp, device = "png",
+       height = 5, width = 7, units = "in", 
+       dpi=600)
+
+
+
+```
+
+```{r Figure-5, echo=FALSE}
+
+## Generating Figure-5
+
+load(file = here("Data", "protein_analyses_out.Rdata"))
+
+protein_datatable_out <- readRDS(here("Data", "protein_datatable_out.Rds"))
+
+if(RUN_POPULATION_COVERAGE){
+  setwd(here("Utils", "population_coverage"))
+use_condaenv(condaenv = "py27", required = TRUE)
+py_config()
+system("python configure.py")
+
+df <- protein_datatable_out %>% 
+  filter(order3 == "T") %>% 
+  arrange(desc(meanID)) %>% 
+  distinct_at(vars(`MHC Allele Names`), .keep_all = TRUE) 
+
+df$`MHC Allele Names` %>% str_replace_all(pattern = "/", replacement = ",HLA-") -> df$`MHC Allele Names`
+
+single_cov = vector()
+  
+for (i in seq.int(1, length(df$`Epitope Sequence`))) {
+  
+    write_tsv(x = df[i,] %>% select(`Epitope Sequence`, `MHC Allele Names`), 
+              col_names = FALSE, 
+              path = here("Utils", "population_coverage", "HLA_I_II"))
+  
+    z <- system(glue::glue("python calculate_population_coverage.py -p ", "\"World\"", " -c combined -f ./HLA_I_II"), 
+                intern = TRUE)
+  
+    x <- z[3] %>% stringr::str_extract_all(boundary("word"), 
+                                           simplify = TRUE)
+    
+    single_cov[i] <- as.double(x[2])
+}
+
+scov_df <- data.frame(`Epitope Sequence` = 
+                        df$`Epitope Sequence`[which(!is.na(single_cov))], 
+                      `MHC Allele Names` = 
+                        df$`MHC Allele Names`[which(!is.na(single_cov))])
+
+scov_values <- single_cov[which(!is.na(single_cov))]
+
+scov_df <- bind_rows(scov_df[which(scov_values == max(scov_values)),],
+                     scov_df[-which(scov_values == max(scov_values)),])
+
+best_covs <- vector(mode = "double")
+best_covs[1] <- max(scov_values)
+best_eps <- scov_df[1,]
+
+best_cov <- best_covs[1]
+best_ep <- best_eps[1,]
+
+selected <- vector()
+
+for (i in seq.int(1, length(scov_df$Epitope.Sequence))) {
+  print(paste0("i = ", i))
+  for (j in seq.int(i+1, length(scov_df$Epitope.Sequence))) {
+    print(paste0("j = ", j))
+    if(!(j %in% selected)){
+      temp_ep <- bind_rows(best_eps, scov_df[j,]) 
+      write_tsv(x = temp_ep, 
+                col_names = FALSE, path = here("Utils", "population_coverage", "HLA_I_II"))
+      z <- system(glue::glue("python calculate_population_coverage.py -p ", 
+                             "\"World\"", " -c combined -f ./HLA_I_II"), intern = TRUE)
+      x <- z[3] %>% stringr::str_extract_all(boundary("word"), simplify = TRUE) 
+      
+      if(as.double(x[2]) > best_cov){
+        best_cov <- as.double(x[2])
+        best_ep <- temp_ep
+        best_j <- j}
+    }
+  }
+  
+  best_covs <- c(best_covs, best_cov)
+  best_eps <- best_ep
+  selected <- c(selected, best_j)
+  
+}
+
+
+immunogen <- data.frame(Epitope = best_eps$Epitope.Sequence,
+                        MHCs = best_eps$MHC.Allele.Names,
+                        AccCov = best_covs[1:length(best_eps$Epitope.Sequence)])
+
+Scov = vector()
+for (i in seq.int(1, length(immunogen$Epitope))) {
+  
+  write_tsv(x = immunogen[i,] %>% select(Epitope, MHCs), 
+            col_names = FALSE, 
+            path = here("Utils", "population_coverage", "HLA_I_II"))
+  z <- system(glue::glue("python calculate_population_coverage.py -p ",
+                         "\"World\"", " -c combined -f ./HLA_I_II"),
+              intern = TRUE)
+  x <- z[3] %>% stringr::str_extract_all(boundary("word"), 
+                                         simplify = TRUE)
+  Scov[i] <- as.double(x[2])
+}
+
+immunogen$SCov <- Scov
+
+df$Epitope <- df$`Epitope Sequence`
+
+immunogen <- left_join(x = immunogen, y = df %>% 
+                         select(`MHC Allele Classes`, `IEDB ID`, `MHC Allele Names`,
+                                Epitope, meanID, Protein, Epitope, epiLength,
+                                IdD1, IdD2, IdD3, IdD4, order1, order2, order3, order4), by = c( "Epitope"))
+
+immunogen$order <- seq_along(immunogen$Epitope)
+
+write_csv(x = immunogen, path = here("Data", "pop_coverage.csv"), col_names = TRUE)
+
+write_tsv(x = immunogen %>% select(Epitope, MHCs), 
+          col_names = FALSE, 
+          path = here("Utils", "population_coverage", "HLA_I_II_World"))
+
+write_tsv(x = immunogen %>% filter(`MHC Allele Classes` == "I") %>% select(Epitope, MHCs), 
+          col_names = FALSE, 
+          path = here("Utils", "population_coverage", "HLA_I_World"))
+
+write_tsv(x = immunogen %>% filter(`MHC Allele Classes` == "II") %>% select(Epitope, MHCs), 
+          col_names = FALSE, 
+          path = here("Utils", "population_coverage", "HLA_II_World"))
+
+setwd(here())
+
+iedb <- read_csv(here("Data", "Utils", "IEDB_populations.csv"), 
+                 col_names = TRUE)
+
+r0 <- iedb$`Population Country` %>% 
+  na.omit() %>% 
+  unique() %>% 
+  sort()
+
+region <- r0 %>% 
+  double_quote()
+
+cov <- as.double(vector(length = length(region)))
+immunogen_covs <- data.frame(pop = "World", acc_cov = immunogen$AccCov %>% max(), stringsAsFactors = FALSE)
+
+for (i in seq.int(1, length(region))) {
+  
+  print(paste0("Country: ", region[i]))
+  
+  z <- system(glue::glue("python calculate_population_coverage.py -p ", region[i], " -c combined -f ./HLA_I_II"), intern = TRUE)
+  
+  check <- (z[1] %>% stringr::str_extract_all(boundary("word"), simplify = TRUE))[1]
+  
+  if (check == "No")
+  {cov[i] <- NA}
+  
+  if(check!="No")
+  {x <- z[3] %>% stringr::str_extract_all(boundary("word"), simplify = TRUE)
+  if (length(x)==4) {
+    cov[i] <- as.double(x[2])
+  }
+  if (length(x)==5) {
+    cov[i] <- as.double(x[3])
+  }
+  if (length(x)==6) {
+    cov[i] <- as.double(x[4])
+  }
+  if (length(x)==7) {
+    cov[i] <- as.double(x[5])
+  }
+  }
+  immunogen_covs <- rbind(immunogen_covs, c(region[i], cov[i]))
+}
+
+immunogen_covs$country <- c("World", r0)
+
+
+map_data("world") %>% pull(region) %>% unique -> c
+
+x <- c("World", "Borneo", "Congo", "England", "Hong Kong", "Ireland Northern", "Ireland South", "Korea; South", "Scotland",
+       "Tokelau", "Trinidad and Tobago", "United Kingdom", "United States", "Wales") 
+
+y <- c(NA, NA, "Democratic Republic of the Congo", NA, NA, NA, NA, "South Korea", 
+       NA, NA, "Trinidad", "UK", "USA", NA)
+
+for (i in seq_along(x)) {
+  immunogen_covs$country[which(immunogen_covs$country==x[i])] <- y[i]
+}
+
+immunogen_covs %>% filter(country %in% intersect(immunogen_covs$country, df_seq_countries$country_names)) %>% 
+  mutate(region = country) -> immunogen_map  
+
+immunogen_map <- left_join(x = map_data("world"), y = immunogen_map, by = "region")
+
+immunogen_map$acc_cov <- as.numeric(immunogen_map$acc_cov)
+
+region.lab.data <- immunogen_map %>%
+  group_by(region) %>%
+  summarise(long_cent = median(long), lat_cent = median(lat))
+
+save(list = c("immunogen", "immunogen_map"), 
+     file = here("Data", "immunogen_dataframes.Rdata"))
+
+}
+
+load(file = here("Data", "immunogen_dataframes.Rdata"))
+
+{
+region.lab.data <- immunogen_map %>%
+  group_by(region) %>%
+  summarise(long_cent = median(long), lat_cent = median(lat))
+  
+g <- ggplot(immunogen_map, aes(x = long, y = lat, label = region)) + geom_polygon(aes( group = group, fill = acc_cov))
+
+g <- g + ggrepel::geom_label_repel(data = region.lab.data %>% 
+                                     filter(region %in% c("Thailand", "Brazil", "Philippines")),
+                                   aes(long_cent, lat_cent,
+                                       label = c(paste0("Brazil\n", immunogen_map %>% filter(country == "Brazil") %>% pull(acc_cov) %>% unique(), "%"), 
+                                                 paste0("Philippines\n", immunogen_map %>% filter(country == "Philippines") %>% pull(acc_cov) %>% unique(), "%"), 
+                                                 paste0("Thailand\n", immunogen_map %>% filter(country == "Thailand") %>% pull(acc_cov) %>% unique(), "%"))),
+                                   color = 'black', 
+                                   size  = 3, point.padding = NA, nudge_x = c(25, 20, -5), nudge_y = c(0,0,-25))
+
+g <- g + scale_fill_gradient(low = brewer.pal(9, "BuGn")[2], high = brewer.pal(9, "PuBuGn")[9], na.value = "grey90", 
+                             guide = "colorbar", breaks = c(20, 40, 60, 80), labels = c("20%", "40%", "60%", "80%"), 
+                             limits = c(0,100))
+
+g <- g + theme(legend.position = "bottom", 
+               panel.background = element_blank(), panel.grid = element_blank(),
+               axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), 
+               legend.margin = margin(0)) + theme(plot.margin = margin(0,0,0,0))
+
+g <- g + guides(fill = guide_colorbar(title = "Population coverage (country-wise)",  ticks = FALSE, 
+                                      title.theme = element_text(size = 9, hjust = 0.5), title.position = "top", 
+                                      label.theme = element_text(size = 7), nbin = 5000, barheight = 0.5,
+                                      barwidth = 12, raster = TRUE, draw.llim = FALSE, draw.ulim = FALSE))
+
+fig_tmpB <- g
+
+immunogen %>% arrange(desc(order)) -> immunogen
+
+immunogen %>% pull(Epitope) %>% factor(levels = immunogen$Epitope) -> immunogen$Epitope
+
+immunogen$`MHC Allele Names` <- str_replace_all(string = immunogen$`MHC Allele Names`, 
+                                                   pattern = "HLA-", replacement = "")
+
+immunogen$`MHC Allele Names`[which(str_count(immunogen$`MHC Allele Names`, ",")>=2)] <-
+  str_replace(string = immunogen$`MHC Allele Names`[which(str_count(immunogen$`MHC Allele Names`, ",")>=2)], ",", ",\n")
+
+immunogen_df <- immunogen %>% gather(key = IdDkey, value = IdDvalue, c(IdD1, IdD2, IdD3, IdD4))
+
+immunogen_df$IdDkey <- immunogen_df %>% pull(IdDkey) %>% 
+  factor(levels = c("IdD1", "IdD2", "IdD3", "IdD4"), 
+         labels = c("DENV1", "DENV2", "DENV3", "DENV4"))
+
+colorings <- c(brewer.pal(12, "Paired")[1], brewer.pal(9, "Set1")[c(5,4)], brewer.pal(12, "Paired")[c(5, 12)], brewer.pal(9, "Set1")[2], brewer.pal(12, "Paired")[9], brewer.pal(9, "Set1")[9], brewer.pal(9, "Set1")[1], brewer.pal(12, "Paired")[7])
+
+names(colorings) <- c("C", "E", "NS1", "NS2a", "NS2b", "NS3", "NS4a", "NS4b", "NS5", "prM")
+
+gf <- ggplot(data = immunogen_df, mapping = aes(x = IdDkey, y = Epitope, fill = IdDvalue))
+
+gf <- gf + geom_tile(color = "grey60", width = 0.70, height = 0.70)
+
+gf <- gf + scale_fill_gradient(low = "white",# brewer.pal(9, "PuBu")[1],
+                               high = brewer.pal(9, "PuBu")[9],
+                               guide = "colorbar", 
+                               limits = c(0,1),
+                               breaks = c(0, 0.5, 1),
+                               labels = c("0", "0.5", "1"),
+                               name = "Fraction of sequences") 
+
+
+gf <- gf + geom_rect(xmin = -3, xmax = 0, ymin = 0, ymax = nrow(df) + 1, fill = "white") + expand_limits(x = -3)
+
+gf <- gf + geom_text(aes(color = Protein, label = Epitope, angle = 0, hjust = 0), 
+                     size = 2.75, fontface = "plain", x = -3, show.legend = TRUE) 
+
+gf <- gf + scale_colour_manual(values = colorings, name = "Protein")
+
+gf <- gf + theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), panel.background = element_rect(fill = "white"))
+
+gf <- gf + ylab("Epitopes") + xlab("Serotypes") + scale_x_discrete(position = "top")
+
+gf <- gf + theme(axis.text.x = element_text(angle = 90, size = 7, hjust = 0.5,  vjust = c(0,1,0,1), color = "grey5", face = "bold"), 
+                 axis.ticks.x = element_blank())
+
+gf <- gf + theme(panel.grid = element_blank(),
+                 strip.background = element_blank(),
+                 strip.text = element_blank(), axis.ticks.y = element_blank(),
+                 axis.text.y = element_blank(),
+                 plot.title = element_text(size = 15, face = "bold", hjust = 1, vjust = 0.5),
+                 plot.subtitle = element_blank(),
+                 axis.title.y = element_text(),
+                 axis.title.x = element_text(hjust = 0.75),
+                 legend.title = element_text(size = 9),
+                 legend.text = element_text(size = 7),
+                 legend.key = element_rect(fill = "white", color = "white"),
+                 legend.spacing.x = unit(0.5, "cm"), legend.box = "vertical", legend.spacing.y = unit(0, "cm"),
+                 legend.box.just = "top", legend.box.margin = margin(0),
+                 legend.key.size = unit(x = 10, units = "pt"),
+                 legend.position = "bottom")
+
+gf <- gf + theme(panel.spacing.x = unit(0, "lines")) +
+  guides(fill=guide_colorbar(title.vjust = 0.85, order = 1, label.theme = element_text(size = 8, margin = margin(t=2)))) +
+  guides(color=guide_legend(override.aes = list(labels = c(
+    paste0("E (", immunogen %>% filter(Protein=="E") %>% n_distinct(), ")"),
+    paste0("NS3 (", immunogen %>% filter(Protein=="NS3") %>% n_distinct(), ")"),
+    paste0("NS4b (", immunogen %>% filter(Protein=="NS4b") %>% n_distinct(), ")"),
+    paste0("NS5 (", immunogen %>% filter(Protein=="NS5") %>% n_distinct(), ")")), 
+    size = 2.75), 
+    label = FALSE, 
+    title = "Protein", 
+    title.theme = element_text(size = 9), order = 2)) 
+
+g1f <- ggplot(data = immunogen_df, mapping = aes(x = Epitope, y = (SCov/4)/100, fill = `MHC Allele Classes`))
+
+g1f <- g1f + geom_col(width = 0.5, show.legend = TRUE) 
+
+g1f <- g1f + scale_y_continuous(breaks = c(0, 0.25, 0.50), 
+                                labels = c("0%", "25%", "50%"), 
+                                position = "right")
+
+g1f <- g1f + scale_fill_manual(labels = c("Class I", "Class II"), 
+                               values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), 
+                               name = "HLA allele")
+
+g1f <- g1f + xlab("Associated   HLA   allele(s)") + 
+  ylab("Individual\ncoverage") + 
+  coord_flip(clip = "off", ylim = c(-0.45, 0.50))
+
+g1f <- g1f + theme(panel.grid = element_blank(),
+                   plot.background = element_blank(),
+                   panel.background = element_blank(), 
+                   axis.text.y = element_blank(), 
+                   axis.ticks.y = element_blank())
+
+g1f <- g1f + theme(axis.text.x = element_text(size = 8), 
+                   legend.position = "bottom", 
+                   legend.text = element_text(size = 7), 
+                   legend.title = element_text(size = 8), 
+                   legend.key.size = unit(x = 10, units = "pt")) 
+
+g1f <- g1f + theme(axis.line.x = element_blank(), axis.ticks.x = element_line()) + 
+  geom_hline(yintercept = 0, color = "grey45")
+
+g1f <- g1f + geom_rect(ymin = -0.45, ymax = 0, xmin = 0, xmax = nrow(immunogen_df) + 1, 
+                       fill = "white", show.legend = FALSE) + 
+  expand_limits(y = -0.45) 
+
+g1f <- g1f + geom_text(aes(color = `MHC Allele Classes`, 
+                           label = `MHC Allele Names`, 
+                           angle = 0, hjust = 0), 
+                       size = 2.25, fontface = "plain", y = -0.45, show.legend = FALSE) 
+
+g1f <- g1f + scale_colour_manual(labels = c("I", "II"), 
+                                 values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), 
+                                 name = "HLA allele")
+
+g1f <- g1f + geom_segment(y = 0, yend = max(immunogen$SCov/100), 
+                          x = length(immunogen$Epitope)+0.6, xend = length(immunogen$Epitope)+0.6, 
+                          size = 0.2, color = "grey45", show.legend = FALSE) + 
+  guides(color = FALSE)
+
+
+g2f <- ggplot(data = immunogen_df, mapping = aes(x = Epitope, y = AccCov, group = 1))
+
+g2f <- g2f + geom_line(linetype = "dashed") + geom_point(aes(shape = "a"), size = 2)
+
+g2f <- g2f + scale_y_continuous(breaks = c(40, 60, 80, 100), 
+                                labels = c("40%", "60%", "80%", "100%"), 
+                                position = "right") 
+
+g2f <- g2f + theme(panel.grid.minor = element_blank(), 
+                   plot.background = element_blank(),
+                   panel.background = element_blank())
+
+g2f <- g2f + xlab("") + 
+  ylab("Accumulated\ncoverage") + 
+  coord_flip(clip = "on", ylim = c(40, 100))
+
+g2f <- g2f + theme(axis.text.x = element_text(size = 8), 
+                   axis.ticks = element_blank(), 
+                   axis.title.y = element_blank(), 
+                   axis.text.y = element_blank(),
+                   panel.grid.major.x = element_line(color = "grey75", linetype = "dotted"), 
+                   legend.position = "bottom") 
+
+g2f <- g2f + theme(legend.text = element_blank(), 
+                   legend.key = element_blank(), legend.key.size = unit(0, "mm"), 
+                   legend.title = element_blank())
+
+g2f <- g2f +  guides(shape=guide_legend(override.aes = list(labels = "", size = 0), label = FALSE,  
+                            title.theme = element_blank())) 
+
+g2f + theme(axis.line.x = element_line(color = "grey60", size = 0.5), axis.ticks.x = element_line()) -> g2f
+
+gempty <- ggplot(data = df) + theme_void()
+
+gf <- gf + theme(plot.margin = unit(c(0,15,0,0), "pt"))
+g1f <- g1f + theme(plot.margin = unit(c(0,0,0,0), "pt"))
+g2f <- g2f + theme(plot.margin = unit(c(0,0,0,0), "pt")) + 
+  geom_segment(y = max(immunogen_df$AccCov), yend = max(immunogen_df$AccCov), 
+               x = 1, xend = length(immunogen_df$Epitope), 
+               color = "grey45", linetype = "dashed", 
+               show.legend = FALSE) + 
+  guides(color = FALSE)
+
+
+
+fig_tmpA <- ggarrange(gempty,
+                      ggarrange(gf, g1f, g2f, ncol = 3, nrow = 1, widths = c(1.2,1.2,1), align = "hv", 
+                                common.legend = FALSE,  legend = "bottom"), 
+                      ncol = 1, nrow = 2, heights = c(0.50,10), align = "hv")
+}
+
+fig_tmp <- ggarrange(fig_tmpA, 
+                     ggarrange(gempty, fig_tmpB, gempty, ncol = 3, nrow = 1, 
+                               widths = c(0.15,1,0.15)),  
+                     ncol = 1, nrow = 2, labels = c("A", "B"), align = "h", 
+                     common.legend = FALSE, heights = c(2.2,1.6)) 
+
+ggsave(filename = here("Figure", "Figure-5.png"), plot = fig_tmp, device = "png", 
+       width = 8.2, height = 10, units = "in", dpi = 1200)
+
+```
+
+<style type="text/css">
+.main-container {
+  max-width: 1500px;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+</style>
+
+
+### Comprehensive table of pan-serotypic conservation profiles of DENV T cell epitopes
+
+This table provides a comprehensive list of experimentally determined DENV T cell epitopes showing their conservation profiles (i.e., conservation within each DENV serotype) along the associated HLA alleles.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+
+library(here)
+library(tidyverse)
+library(RColorBrewer)
+library(formattable)
+library(DT)
+
+protein_datatable_out <- readRDS(here("Data", "protein_datatable_out.Rds"))
+
+protein_datatable_out %>% 
+  mutate_if(is.numeric, round, 2) %>% 
+  arrange(as.numeric(`IEDB ID`)) %>% 
+  select(`IEDB ID`, `Epitope Sequence`, `MHC Allele Names`, `MHC Allele Classes`,
+         Protein, IdD1, IdD2, IdD3, IdD4) -> df
+
+colnames(df) <- c("IEDB ID", "Epitope", "HLA Alleles", "HLA Class",
+                  "Protein",  
+                  "DENV1 Cons.", "DENV2 Cons.", "DENV3 Cons.", "DENV4 Cons.")
+
+dt <- datatable(df, editable = FALSE,
+                   filter = list(position = 'top', clear = 'TRUE'), 
+                   rownames = FALSE,
+                   autoHideNavigation = TRUE, 
+                    options = list(dom = 'Bfrtip',
+                                   fixedHeader = FALSE,
+                                   pageLength = 25, 
+                                   paging = TRUE,
+                                   lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100", "All")),
+                                   autowidth = TRUE, 
+                                   scrollX = TRUE,
+                                   buttons = c('copy', 'print', 'csv'),
+                                   columnDefs = list(list(className = 'dt-center', targets = 0:8),
+                                                     list(width = '200px', targets = c(1)),
+                                                     list(width = '250px', targets = c(2)),
+                                                     list(width = '110px', targets = c(3)),
+                                                     list(width = '80px', targets = c(4:8)))), 
+                   extensions = c('FixedHeader', 'Buttons')) %>% 
+  formatStyle(columns = c(6,7,8,9), 
+              background = styleColorBar(c(df$`DENV1 Cons.`, df$`DENV2 Cons.`, df$`DENV3 Cons.`, df$`DENV4 Cons.`), 
+                                         color = brewer.pal(8, "GnBu")[6]),
+              backgroundSize = '80% 90%',
+              backgroundRepeat = 'no-repeat', backgroundPosition = 'center')
+
+dt
+
+
+```
+

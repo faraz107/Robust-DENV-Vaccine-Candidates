@@ -1,0 +1,66 @@
+---
+title: "DENV T Cell Epitopes Table"
+output: html_document
+---
+
+<style type="text/css">
+.main-container {
+  max-width: 1500px;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+</style>
+
+
+### Comprehensive table of pan-serotypic conservation profiles of DENV T cell epitopes
+
+This table provides a comprehensive list of experimentally determined DENV T cell epitopes showing their conservation profiles (i.e., conservation within each DENV serotype) along the associated HLA alleles.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+
+library(here)
+library(tidyverse)
+library(RColorBrewer)
+library(formattable)
+library(DT)
+
+protein_datatable_out <- readRDS(here("Data", "protein_datatable_out.Rds"))
+
+protein_datatable_out %>% 
+  mutate_if(is.numeric, round, 2) %>% 
+  arrange(as.numeric(`IEDB ID`)) %>% 
+  select(`IEDB ID`, `Epitope Sequence`, `MHC Allele Names`, `MHC Allele Classes`,
+         Protein, IdD1, IdD2, IdD3, IdD4) -> df
+
+colnames(df) <- c("IEDB ID", "Epitope", "HLA Alleles", "HLA Class",
+                  "Protein",  
+                  "DENV1 Cons.", "DENV2 Cons.", "DENV3 Cons.", "DENV4 Cons.")
+
+dt <- datatable(df, editable = FALSE,
+                   filter = list(position = 'top', clear = 'TRUE'), 
+                   rownames = FALSE,
+                   autoHideNavigation = TRUE, 
+                    options = list(dom = 'Bfrtip',
+                                   fixedHeader = FALSE,
+                                   pageLength = 25, 
+                                   paging = TRUE,
+                                   lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100", "All")),
+                                   autowidth = TRUE, 
+                                   scrollX = TRUE,
+                                   buttons = c('copy', 'print', 'csv'),
+                                   columnDefs = list(list(className = 'dt-center', targets = 0:8),
+                                                     list(width = '200px', targets = c(1)),
+                                                     list(width = '250px', targets = c(2)),
+                                                     list(width = '110px', targets = c(3)),
+                                                     list(width = '80px', targets = c(4:8)))), 
+                   extensions = c('FixedHeader', 'Buttons')) %>% 
+  formatStyle(columns = c(6,7,8,9), 
+              background = styleColorBar(c(df$`DENV1 Cons.`, df$`DENV2 Cons.`, df$`DENV3 Cons.`, df$`DENV4 Cons.`), 
+                                         color = brewer.pal(8, "GnBu")[6]),
+              backgroundSize = '80% 90%',
+              backgroundRepeat = 'no-repeat', backgroundPosition = 'center')
+
+dt
+
+
+```

@@ -1,0 +1,150 @@
+<!-- badges: start -->
+
+[![Launch Rstudio
+Binder](http://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/faraz107/Robust-DENV-Vaccine-Candidates/master?urlpath=rstudio)
+<!-- badges: end -->
+
+### Prerequisites
+
+Latest version of **R** (version 3.6.0 or later) and **RStudio**
+(version 1.2.5 or later) installed.
+
+Following
+`**R** packages and their dependencies are required. Upon first run of`init.R\`
+file, it will check if these are installed and attempt to install them.
+Tested to work on **Windows** and **Mac** operating sytems.
+
+“here” |“rmarkdown” | “RColorBrewer” | “tidyverse” | “ggpubr” | “seqinr”
+“readxl” | “readr” | “DT” | “htmltools” | “webshot” | “magick”
+“gridExtra” | “formattable” | “glue” | “maps” | “reticulate” | “BALCONY”
+“grid” | “BiocManager” | “msa”, “Biostrings”
+
+> For **Linux** operating system, may need to install the above packages
+> and their dependencies separately.
+
+### Get RStudio project
+
+The complete project is shared as a [Github
+repository](https://github.com/faraz107/Robust-DENV-Vaccine-Candidates).
+Clone the entire project repository into your local RStudio as follows:
+
+-   Open **RStudio**, goto `File` then `New Project`.
+-   Select `Version Control` then choose `Git`.
+-   Enter the `Repository URL` as below to create the project:
+
+    > <a href="https://github.com/faraz107/Robust-DENV-Vaccine-Candidates.git" class="uri">https://github.com/faraz107/Robust-DENV-Vaccine-Candidates.git</a>
+
+### Initialization
+
+-   Run the following command in **RStudio** console &gt;
+    `source("init.R")`
+
+### Main Project File
+
+1.  Open the `project.Rmd` file in the RStudio and knit using the button
+    or press `Ctrl+Shift+K` (Windows). This will run the whole project
+    with defaults and reproduce the results and figures.
+
+    -   All figures are generated and saved within the `Figure` folder.
+
+    -   All raw protein MSAs are saved in the `Data\MSA_data` folder.
+
+    -   The MSAs were downloaded from [ViPR Dengue sequence
+        database](https://www.viprbrc.org/brc/vipr_protein_search.spg?method=ShowCleanSearch&decorator=flavi_dengue)
+        with the following options:
+
+        -   Data:
+            -   ☒ Protein
+        -   Host selection:
+            -   ☒ Human
+        -   Dengue virus type:
+            -   ☒ Dengue virus 1/Dengue virus 2/Dengue virus 3/Dengue
+                virus 4 (*choosen respectively*)
+        -   Gene symbol:
+            -   ☒ C/preM/E/NS1/NS2a/NS2b/NS3/NS4a/NS4b/NS5 (*choosen
+                respectively*)
+
+    -   All raw MSAs have been pre-processed and saved as fasta files
+        (with *`.fa`* extension) within the `Data` folder and named with
+        a prefix “*outMSA*”.
+
+        -   To process the raw MSAs within `Data\MSA_data` folder, set
+            the parameter `RUN_PROTEIN_ANALYSIS = TRUE`.
+
+    -   Note that the population coverage computation requires
+        `Python 2.7` and these are pre-computed.
+
+        -   The implementation uses `Anaconda 2` environment.
+
+        -   If `Python 2.7` is installed with `Anaconda 2`, set an
+            environment using command `conda create -n py27 python=2.7`
+            and then enable the population coverage computations by
+            setting parameter `RUN_POPULATION_COVERAGE = TRUE`.
+
+2.  The first code chunk `R Packages` checks and installs all the
+    required packages. You may need to check for any requirements for
+    installing certain packages,
+    e.g. [`BALCONY`](https://cran.r-project.org/web/packages/BALCONY/index.html)
+    and
+    [`magick`](https://cran.r-project.org/web/packages/magick/index.html).
+
+    -   For installing the `magick` take note of guidelines
+        [here](https://cran.r-project.org/web/packages/magick/vignettes/intro.html).
+
+        -   On Linux you need to install the `ImageMagick++` library: on
+            Debian/Ubuntu this is called `libmagick++-dev`:
+            `sudo apt-get install libmagick++-dev`
+
+        -   On Fedora or CentOS/RHEL we need `ImageMagick-c++-devel`:
+            `sudo yum install ImageMagick-c++-devel`
+
+        -   Then install using: `install.packages("magick")`
+
+3.  The code chunk `Parameters` sets up imporant global parameters. Use
+    default values for reproducing results.
+
+4.  The code chunk `Initial setting up of T cell epitopes data` assesses
+    the raw T cell eptiope data in the file
+    `Data\ViPR_epitope_data\Results.xls` which was downloaded from [ViPR
+    Dengue epitope
+    database](https://www.viprbrc.org/brc/vipr_virusEpitope_search.spg?method=ShowCleanSearch&decorator=flavi_dengue)
+    with the following options:
+
+    -   Epitope type:
+        -   ☒ Experimentally Determined Epitopes
+    -   Host:
+        -   ☒ Human
+    -   Assay type category:
+        -   T cell
+            -   ☒ Positive
+
+5.  The code chunk `Analyzing protein data` processes the raw protein
+    MSAs:
+
+    -   Removes sequences with greater than `GAPratio` fraction of gaps
+
+    -   Saves the processed MSAs of each DENV protein and serotype in
+        `Data` folder
+
+    -   Computes statistics of sequence and epitope data
+
+    -   Maps the T cell eptiopes onto protein MSAs and computes their
+        conservation profiles
+
+6.  The code chunk `Processing data` further processes the data and
+    compiles the result into a single `R dataframe`.
+
+7.  The code chunk `Preparing datatable` generates a standalone HTML
+    file wihtin the `Tool` folder, named *DENV\_Epitopes\_Table*. This
+    serves as an easy-to-use tool for browsing, filtering, exploring and
+    exporting conservation profiles and associated HLA alleles
+    information about DENV T cell epitopes.
+
+8.  The following code chunks generate the figures and saves them in
+    `Figure` folder:
+
+    -   `Generating Figure-1`
+    -   `Generating Figure-2`
+    -   `Generating Figure-3`
+    -   `Generating Figure-4`
+    -   `Generating Figure-5`
