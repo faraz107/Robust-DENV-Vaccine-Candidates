@@ -485,8 +485,8 @@ immunogen %>% pull(Epitope) %>% factor(levels = immunogen$Epitope) -> immunogen$
 immunogen$`MHC Allele Names` <- str_replace_all(string = immunogen$`MHC Allele Names`, 
                                                    pattern = "HLA-", replacement = "")
 
-immunogen$`MHC Allele Names`[which(str_count(immunogen$`MHC Allele Names`, ",")>=2)] <-
-  str_replace(string = immunogen$`MHC Allele Names`[which(str_count(immunogen$`MHC Allele Names`, ",")>=2)], ",", ",\n")
+# immunogen$`MHC Allele Names`[which(str_count(immunogen$`MHC Allele Names`, ",")>=2)] <-
+  str_replace(string = immunogen$`MHC Allele Names`[which(str_count(immunogen$`MHC Allele Names`, ",")>=2)], ",", ", ")
 
 immunogen_df <- immunogen %>% gather(key = IdDkey, value = IdDvalue, c(IdD1, IdD2, IdD3, IdD4))
 
@@ -500,7 +500,7 @@ names(colorings) <- c("C", "E", "NS1", "NS2a", "NS2b", "NS3", "NS4a", "NS4b", "N
 
 gf <- ggplot(data = immunogen_df, mapping = aes(x = IdDkey, y = Epitope, fill = IdDvalue))
 
-gf <- gf + geom_tile(color = "grey60", width = 0.70, height = 0.70)
+gf <- gf + geom_tile(color = "grey60", width = 0.60, height = 0.60)
 
 gf <- gf + scale_fill_gradient(low = "white",# brewer.pal(9, "PuBu")[1],
                                high = brewer.pal(9, "PuBu")[9],
@@ -511,7 +511,7 @@ gf <- gf + scale_fill_gradient(low = "white",# brewer.pal(9, "PuBu")[1],
                                name = "Fraction of sequences") 
 
 
-gf <- gf + geom_rect(xmin = -3, xmax = 0, ymin = 0, ymax = nrow(df) + 1, fill = "white") + expand_limits(x = -3)
+gf <- gf + geom_rect(xmin = -3, xmax = 0, ymin = 0, ymax = nrow(immunogen) + 1, fill = "white") + expand_limits(x = -3)
 
 gf <- gf + geom_text(aes(color = Protein, label = Epitope, angle = 0, hjust = 0), 
                      size = 2.75, fontface = "plain", x = -3, show.legend = TRUE) 
@@ -635,7 +635,7 @@ g2f <- g2f +  guides(shape=guide_legend(override.aes = list(labels = "", size = 
 
 g2f + theme(axis.line.x = element_line(color = "grey60", size = 0.5), axis.ticks.x = element_line()) -> g2f
 
-gempty <- ggplot(data = df) + theme_void()
+gempty <- ggplot(data = immunogen_df) + theme_void()
 
 gf <- gf + theme(plot.margin = unit(c(0,15,0,0), "pt"))
 g1f <- g1f + theme(plot.margin = unit(c(0,0,0,0), "pt"))

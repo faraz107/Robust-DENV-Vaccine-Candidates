@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Prerequisites
 
-Latest version of **R** (version 3.6.0 or later) and **RStudio** (version 1.2.5 or later) installed.
+Latest version of [**R**](https://www.r-project.org/) (version 3.6.0 or later) and [**RStudio**](https://rstudio.com/products/rstudio/download/) (version 1.2.5 or later) installed.
 
 Following **R** packages and their dependencies are required. Upon first run of `init.R` file, it will check if these are installed and attempt to install them. Tested to work on **Windows** and **Mac** operating sytems. 
 

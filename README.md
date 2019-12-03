@@ -6,13 +6,14 @@ Binder](http://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/faraz107
 
 ### Prerequisites
 
-Latest version of **R** (version 3.6.0 or later) and **RStudio**
+Latest version of [**R**](https://www.r-project.org/) (version 3.6.0 or
+later) and [**RStudio**](https://rstudio.com/products/rstudio/download/)
 (version 1.2.5 or later) installed.
 
-Following **R** packages and their dependencies are required. Upon
-first run of `init.R` file, it will check if these are installed and
-attempt to install them. Tested to work on **Windows** and **Mac**
-operating sytems.
+Following **R** packages and their dependencies are required. Upon first
+run of `init.R` file, it will check if these are installed and attempt
+to install them. Tested to work on **Windows** and **Mac** operating
+sytems.
 
     + here 
     + rmarkdown 
