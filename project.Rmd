@@ -182,7 +182,10 @@ ggsave(filename = here("Figure", "Figure-1.png"),
        width = 6, height = 8, units = "in", 
        dpi = 1200)
 
-
+# ggsave(filename = here("Figure", "Figure-1.tiff"),
+#        plot = fig_tmp, device = "tiff",
+#        width = 6, height = 8, units = "in",
+#        dpi = 250)
 
 ```
 
@@ -202,6 +205,10 @@ ggsave(filename = here("Figure", "Figure-2.png"),
        height = 10, width = 7.5, units = "in", 
        dpi=600)
 
+# ggsave(filename = here("Figure", "Figure-2.tiff"),
+#        plot = fig_tmp,
+#        height = 10, width = 7.5, units = "in",
+#        dpi=200)
 
 
 ```
@@ -220,7 +227,10 @@ ggsave(filename = here("Figure", "Figure-3.png"),
        width = 7.5, height = 5, units = "in", 
        dpi = 300)
 
-
+# ggsave(filename = here("Figure", "Figure-3.tiff"),
+#        plot = fig_tmp, device = "tiff",
+#        width = 7.5, height = 5, units = "in",
+#        dpi = 280)
 
 ```
 
@@ -238,7 +248,10 @@ ggsave(filename = here("Figure", "Figure-4.png"),
        height = 5, width = 7, units = "in", 
        dpi=600)
 
-
+# ggsave(filename = here("Figure", "Figure-4.tiff"),
+#        plot = fig_tmp, device = "tiff",
+#        height = 5, width = 7, units = "in",
+#        dpi=290)
 
 ```
 
@@ -662,6 +675,9 @@ fig_tmp <- ggarrange(fig_tmpA,
 
 ggsave(filename = here("Figure", "Figure-5.png"), plot = fig_tmp, device = "png", 
        width = 8.2, height = 10, units = "in", dpi = 1200)
+
+# ggsave(filename = here("Figure", "Figure-5.tiff"), plot = fig_tmp, device = "tiff",
+#        width = 8.2, height = 10, units = "in", dpi = 195)
 
 ```
 
