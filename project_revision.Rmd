@@ -1,0 +1,3240 @@
+---
+title: "Project"
+author: "written by: Syed Faraz Ahmed"
+date: "run at: `r format(Sys.time())`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r packages, message=FALSE, warning=FALSE, include=FALSE, eval=TRUE}
+
+## R Packages
+# Loads the required R packages.
+
+list_packages <-  list("here", "RColorBrewer", "tidyverse", "ggpubr", "seqinr",
+                       "readxl",  "readr", "DT", "htmltools", "webshot", "magick", "grid",
+                       "gridExtra", "formattable", "glue", "maps", "reticulate", "msa", "Biostrings")
+
+invisible(lapply(list_packages, library, character.only = TRUE))
+
+```
+
+```{r Parameters, include=FALSE}
+
+## Parameters
+# Set the global parameters.  
+
+  RUN_MSA_PROCESSING = FALSE
+  RUN_PROTEIN_ANALYSIS = FALSE
+  RUN_POPULATION_COVERAGE = FALSE
+  
+  GAPratio = 0.15
+  NUM_MAX_MISMATCH = 0
+  ID_THRESH = 0.90
+
+```
+
+```{r Epitope data, include=FALSE}
+
+## Initial setting up of T cell epitopes data
+
+ExEpiTcell_DENV_full <- as.data.frame(read_excel(here("Data/ViPR_epitope_data", "Results.xls"), sheet = "Results"))
+# ExEpiTcell_DENV_full <- as.data.frame(read_excel(here("Data/ViPR_epitope_data", "TransgenicMouse_Results.xls"), sheet = "Results"))
+
+ExEpiTcell_DENV_full %>% separate_rows(Host, `Assay Type Category`, `Assay Result`, `MHC Allele Name`, `MHC Allele Class`, Method, Measurement, sep = ",") -> ExEpiTcell_DENV_full
+
+  ExEpiTcell_DENV <- ExEpiTcell_DENV_full %>%
+    filter(Host == "Human" &
+             str_detect(string = `Assay Result`, pattern = "Positive") &
+             str_detect(string = `Assay Type Category`, pattern = "T")) %>%
+    filter(!str_detect(string = `MHC Allele Name`, pattern = "N/A")) %>%
+    filter(!str_detect(string = `MHC Allele Name`, pattern = "class")) %>%
+    select(`IEDB ID`, `Epitope Sequence`, `MHC Allele Name`, `MHC Allele Class`) %>%
+  group_by(`IEDB ID`, `Epitope Sequence`) %>%
+    distinct_at(vars(`MHC Allele Name`), .keep_all = TRUE) %>%
+    summarise(`MHC Allele Names` = paste(`MHC Allele Name`, collapse = ","),
+              `MHC Allele Classes` = unique(`MHC Allele Class`)) %>%
+    ungroup()
+ 
+  # ExEpiTcell_DENV <- ExEpiTcell_DENV_full %>% 
+  #   filter(str_detect(string = Host, pattern = "transgene") & 
+  #            str_detect(string = `Assay Result`, pattern = "Positive") &
+  #            str_detect(string = `Assay Type Category`, pattern = "T")) %>%
+  #   filter(!str_detect(string = `MHC Allele Name`, pattern = "N/A")) %>% 
+  #   filter(!str_detect(string = `MHC Allele Name`, pattern = "class")) %>%
+  #   filter(str_detect(string = `MHC Allele Name`, pattern = "HLA")) %>%
+  #   select(`IEDB ID`, `Epitope Sequence`, `MHC Allele Name`, `MHC Allele Class`) %>% 
+  # group_by(`IEDB ID`, `Epitope Sequence`) %>% 
+  #   distinct_at(vars(`MHC Allele Name`), .keep_all = TRUE) %>%
+  #   summarise(`MHC Allele Names` = paste(`MHC Allele Name`, collapse = ","), 
+  #             `MHC Allele Classes` = paste(`MHC Allele Class`, collapse = ",")) %>% 
+  #   ungroup()
+  
+  write.fasta(
+    sequences = as.list(ExEpiTcell_DENV$`Epitope Sequence`), 
+              names = ExEpiTcell_DENV$`IEDB ID`, 
+              file.out = here("Data", "TepitopesDENV.fa"))
+
+```
+
+```{r Protein data, include=FALSE, eval=RUN_PROTEIN_ANALYSIS}
+
+## Analyzing protein data
+
+source(here("Functions", "analyze.protein.R"))
+
+# Analyzing E -------
+E_analysis_out <- analyze.protein(PROTEIN = "E", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing prM -------
+prM_analysis_out <- analyze.protein(PROTEIN = "prM", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing C -------
+C_analysis_out <- analyze.protein(PROTEIN = "C", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing NS1 -------
+NS1_analysis_out <- analyze.protein(PROTEIN = "NS1", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing NS2a -------
+NS2a_analysis_out <- analyze.protein(PROTEIN = "NS2a", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing NS2b -------
+NS2b_analysis_out <- analyze.protein(PROTEIN = "NS2b", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing NS3 -------
+NS3_analysis_out <- analyze.protein(PROTEIN = "NS3", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing NS4a -------
+NS4a_analysis_out <- analyze.protein(PROTEIN = "NS4a", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing NS4b -------
+NS4b_analysis_out <- analyze.protein(PROTEIN = "NS4b", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+# Analyzing NS5 -------
+NS5_analysis_out <- analyze.protein(PROTEIN = "NS5", NUM_MAX_MISMATCH = NUM_MAX_MISMATCH, GAPratio = GAPratio)
+
+save(list = c("ExEpiTcell_DENV",
+                "E_analysis_out",		
+                "prM_analysis_out", 	
+                "C_analysis_out", 		
+                "NS1_analysis_out",	
+                "NS2a_analysis_out",	
+                "NS2b_analysis_out",	
+                "NS3_analysis_out",	
+                "NS4a_analysis_out",	
+                "NS4b_analysis_out",	
+                "NS5_analysis_out"), 
+        file = here("Data", "protein_analyses_out.Rdata"))
+
+```
+
+
+
+```{r Processing data, include=FALSE}
+
+## Processing data
+
+load(file = here("Data", "protein_analyses_out.Rdata"))
+
+source(here("Functions", "prepare.datatable.R"))
+
+protein_datatable_out <- prepare.datatable(ExEpiTcell = ExEpiTcell_DENV, 
+                                           AnalyzedProteins = list(E_analysis_out[[1]],
+                                                              prM_analysis_out[[1]],
+                                                              C_analysis_out[[1]],
+                                                              NS1_analysis_out[[1]],
+                                                              NS2a_analysis_out[[1]],
+                                                              NS2b_analysis_out[[1]],
+                                                              NS3_analysis_out[[1]],
+                                                              NS4a_analysis_out[[1]],
+                                                              NS4b_analysis_out[[1]],
+                                                              NS5_analysis_out[[1]]), 
+                                           NameProteins = list("E", "prM", "C",
+                                                              "NS1", "NS2a", "NS2b",
+                                                              "NS3", "NS4a", "NS4b", "NS5"),
+                                           ID_THRESH = ID_THRESH)
+
+saveRDS(object = protein_datatable_out, file = here("Data", "protein_datatable_out.Rds"))
+
+```
+
+```{r Preparing datatable, include=FALSE}
+
+## Preparing datatable 
+
+rmarkdown::render(input = here("DENV_Epitopes_Table.Rmd"), output_dir = here("Tool"))
+
+```
+
+```{r Figure-1, echo=FALSE}
+
+## Generating Figure-1
+
+load(file = here("Data", "protein_analyses_out.Rdata"))
+
+source(here("Functions", "setup.formattable.R"))
+source(here("Functions", "generate.figure1.R"))
+
+fig_tmp <- generate.figure1(ProteinNumSeqs = list(E_analysis_out[[2]],
+                                                 prM_analysis_out[[2]],
+                                                 C_analysis_out[[2]],
+                                                 NS1_analysis_out[[2]],
+                                                 NS2a_analysis_out[[2]],
+                                                 NS2b_analysis_out[[2]],
+                                                 NS3_analysis_out[[2]],
+                                                 NS4a_analysis_out[[2]],
+                                                 NS4b_analysis_out[[2]],
+                                                 NS5_analysis_out[[2]]), 
+                 NameProteins = list("E", "prM", "C",
+                                     "NS1", "NS2a", "NS2b",
+                                     "NS3", "NS4a", "NS4b", "NS5"), 
+                 ProteinTypes = list("DENV1", "DENV2", "DENV3", "DENV4"))
+
+ggsave(filename = here("Figure", "Figure-1.png"), 
+       plot = fig_tmp, device = "png", 
+       width = 6, height = 8, units = "in", 
+       dpi = 1200)
+
+# ggsave(filename = here("Figure", "Figure-1.tiff"),
+#        plot = fig_tmp, device = "tiff",
+#        width = 6, height = 8, units = "in",
+#        dpi = 250)
+
+```
+
+```{r Figure-2, echo=FALSE}
+
+## Generating Figure-2
+
+protein_datatable_out <- readRDS(here("Data", "protein_datatable_out.Rds"))
+
+source(here("Functions", "setup.formattable.R"))
+source(here("Functions", "generate.figure2.R"))
+
+fig_tmp <- generate.figure2(ProteinDatatableOut = protein_datatable_out)
+
+ggsave(filename = here("Figure", "Figure-2.png"), 
+       plot = fig_tmp, 
+       height = 10, width = 7.5, units = "in", 
+       dpi=600)
+
+# ggsave(filename = here("Figure", "Figure-2.tiff"),
+#        plot = fig_tmp,
+#        height = 10, width = 7.5, units = "in",
+#        dpi=200)
+
+ggsave(filename = here("Figure", "Figure-2-rev.png"), 
+       plot = fig_tmp, 
+       height = 10, width = 7.5, units = "in", 
+       dpi=600)
+
+
+```
+
+```{r Figure-3, echo=FALSE}
+
+## Generating Figure-3
+
+protein_datatable_out <- readRDS(here("Data", "protein_datatable_out.Rds"))
+
+source(here("Functions", "generate.figure3.R"))
+fig_tmp <- generate.figure3(ProteinDatatableOut = protein_datatable_out)
+
+ggsave(filename = here("Figure", "Figure-3.png"), 
+       plot = fig_tmp, device = "png", 
+       width = 7.5, height = 5, units = "in", 
+       dpi = 300)
+
+# ggsave(filename = here("Figure", "Figure-3.tiff"),
+#        plot = fig_tmp, device = "tiff",
+#        width = 7.5, height = 5, units = "in",
+#        dpi = 280)
+
+```
+
+```{r Figure-4, echo=FALSE}
+
+## Generating Figure-4
+
+protein_datatable_out <- readRDS(here("Data", "protein_datatable_out.Rds"))
+
+source(here("Functions", "generate.figure4.R"))
+fig_tmp <- generate.figure4(ProteinDatatableOut = protein_datatable_out)
+
+ggsave(filename = here("Figure", "Figure-4.png"), 
+       plot = fig_tmp, device = "png",
+       height = 5, width = 7, units = "in", 
+       dpi=600)
+
+# ggsave(filename = here("Figure", "Figure-4.tiff"),
+#        plot = fig_tmp, device = "tiff",
+#        height = 5, width = 7, units = "in",
+#        dpi=290)
+
+```
+
+```{r Figure-5, echo=FALSE}
+
+## Generating Figure-5
+
+load(file = here("Data", "protein_analyses_out.Rdata"))
+
+protein_datatable_out <- readRDS(here("Data", "protein_datatable_out.Rds"))
+
+if(RUN_POPULATION_COVERAGE){
+  setwd(here("Utils", "population_coverage"))
+use_condaenv(condaenv = "py27", required = TRUE)
+py_config()
+system("python configure.py")
+
+df <- protein_datatable_out %>% 
+  filter(order3 == "T") %>% 
+  arrange(desc(meanID)) %>% 
+  distinct_at(vars(`MHC Allele Names`), .keep_all = TRUE) 
+
+df$`MHC Allele Names` %>% str_replace_all(pattern = "/", replacement = ",HLA-") -> df$`MHC Allele Names`
+
+single_cov = vector()
+  
+for (i in seq.int(1, length(df$`Epitope Sequence`))) {
+  
+    write_tsv(x = df[i,] %>% select(`Epitope Sequence`, `MHC Allele Names`), 
+              col_names = FALSE, 
+              path = here("Utils", "population_coverage", "HLA_I_II"))
+  
+    z <- system(glue::glue("python calculate_population_coverage.py -p ", "\"World\"", " -c combined -f ./HLA_I_II"), 
+                intern = TRUE)
+  
+    x <- z[3] %>% stringr::str_extract_all(boundary("word"), 
+                                           simplify = TRUE)
+    
+    single_cov[i] <- as.double(x[2])
+}
+
+scov_df <- data.frame(`Epitope Sequence` = 
+                        df$`Epitope Sequence`[which(!is.na(single_cov))], 
+                      `MHC Allele Names` = 
+                        df$`MHC Allele Names`[which(!is.na(single_cov))])
+
+scov_values <- single_cov[which(!is.na(single_cov))]
+
+scov_df <- bind_rows(scov_df[which(scov_values == max(scov_values)),],
+                     scov_df[-which(scov_values == max(scov_values)),])
+
+best_covs <- vector(mode = "double")
+best_covs[1] <- max(scov_values)
+best_eps <- scov_df[1,]
+
+best_cov <- best_covs[1]
+best_ep <- best_eps[1,]
+
+selected <- vector()
+
+for (i in seq.int(1, length(scov_df$Epitope.Sequence))) {
+  print(paste0("i = ", i))
+  for (j in seq.int(i+1, length(scov_df$Epitope.Sequence))) {
+    print(paste0("j = ", j))
+    if(!(j %in% selected)){
+      temp_ep <- bind_rows(best_eps, scov_df[j,]) 
+      write_tsv(x = temp_ep, 
+                col_names = FALSE, path = here("Utils", "population_coverage", "HLA_I_II"))
+      z <- system(glue::glue("python calculate_population_coverage.py -p ", 
+                             "\"World\"", " -c combined -f ./HLA_I_II"), intern = TRUE)
+      x <- z[3] %>% stringr::str_extract_all(boundary("word"), simplify = TRUE) 
+      
+      if(as.double(x[2]) > best_cov){
+        best_cov <- as.double(x[2])
+        best_ep <- temp_ep
+        best_j <- j}
+    }
+  }
+  
+  best_covs <- c(best_covs, best_cov)
+  best_eps <- best_ep
+  selected <- c(selected, best_j)
+  
+}
+
+
+immunogen <- data.frame(Epitope = best_eps$Epitope.Sequence,
+                        MHCs = best_eps$MHC.Allele.Names,
+                        AccCov = best_covs[1:length(best_eps$Epitope.Sequence)])
+
+Scov = vector()
+for (i in seq.int(1, length(immunogen$Epitope))) {
+  
+  write_tsv(x = immunogen[i,] %>% select(Epitope, MHCs), 
+            col_names = FALSE, 
+            path = here("Utils", "population_coverage", "HLA_I_II"))
+  z <- system(glue::glue("python calculate_population_coverage.py -p ",
+                         "\"World\"", " -c combined -f ./HLA_I_II"),
+              intern = TRUE)
+  x <- z[3] %>% stringr::str_extract_all(boundary("word"), 
+                                         simplify = TRUE)
+  Scov[i] <- as.double(x[2])
+}
+
+immunogen$SCov <- Scov
+
+df$Epitope <- df$`Epitope Sequence`
+
+immunogen <- left_join(x = immunogen, y = df %>% 
+                         select(`MHC Allele Classes`, `IEDB ID`, `MHC Allele Names`,
+                                Epitope, meanID, Protein, Epitope, epiLength,
+                                IdD1, IdD2, IdD3, IdD4, order1, order2, order3, order4), by = c( "Epitope"))
+
+immunogen$order <- seq_along(immunogen$Epitope)
+
+write_csv(x = immunogen, path = here("Data", "pop_coverage.csv"), col_names = TRUE)
+
+write_tsv(x = immunogen %>% select(Epitope, MHCs), 
+          col_names = FALSE, 
+          path = here("Utils", "population_coverage", "HLA_I_II_World"))
+
+write_tsv(x = immunogen %>% filter(`MHC Allele Classes` == "I") %>% select(Epitope, MHCs), 
+          col_names = FALSE, 
+          path = here("Utils", "population_coverage", "HLA_I_World"))
+
+write_tsv(x = immunogen %>% filter(`MHC Allele Classes` == "II") %>% select(Epitope, MHCs), 
+          col_names = FALSE, 
+          path = here("Utils", "population_coverage", "HLA_II_World"))
+
+setwd(here())
+
+iedb <- read_csv(here("Data", "Utils", "IEDB_populations.csv"), 
+                 col_names = TRUE)
+
+r0 <- iedb$`Population Country` %>% 
+  na.omit() %>% 
+  unique() %>% 
+  sort()
+
+region <- r0 %>% 
+  double_quote()
+
+cov <- as.double(vector(length = length(region)))
+immunogen_covs <- data.frame(pop = "World", acc_cov = immunogen$AccCov %>% max(), stringsAsFactors = FALSE)
+
+for (i in seq.int(1, length(region))) {
+  
+  print(paste0("Country: ", region[i]))
+  
+  z <- system(glue::glue("python calculate_population_coverage.py -p ", region[i], " -c combined -f ./HLA_I_II"), intern = TRUE)
+  
+  check <- (z[1] %>% stringr::str_extract_all(boundary("word"), simplify = TRUE))[1]
+  
+  if (check == "No")
+  {cov[i] <- NA}
+  
+  if(check!="No")
+  {x <- z[3] %>% stringr::str_extract_all(boundary("word"), simplify = TRUE)
+  if (length(x)==4) {
+    cov[i] <- as.double(x[2])
+  }
+  if (length(x)==5) {
+    cov[i] <- as.double(x[3])
+  }
+  if (length(x)==6) {
+    cov[i] <- as.double(x[4])
+  }
+  if (length(x)==7) {
+    cov[i] <- as.double(x[5])
+  }
+  }
+  immunogen_covs <- rbind(immunogen_covs, c(region[i], cov[i]))
+}
+
+immunogen_covs$country <- c("World", r0)
+
+
+map_data("world") %>% pull(region) %>% unique -> c
+
+x <- c("World", "Borneo", "Congo", "England", "Hong Kong", "Ireland Northern", "Ireland South", "Korea; South", "Scotland",
+       "Tokelau", "Trinidad and Tobago", "United Kingdom", "United States", "Wales") 
+
+y <- c(NA, NA, "Democratic Republic of the Congo", NA, NA, NA, NA, "South Korea", 
+       NA, NA, "Trinidad", "UK", "USA", NA)
+
+for (i in seq_along(x)) {
+  immunogen_covs$country[which(immunogen_covs$country==x[i])] <- y[i]
+}
+
+immunogen_covs %>% filter(country %in% intersect(immunogen_covs$country, df_seq_countries$country_names)) %>% 
+  mutate(region = country) -> immunogen_map  
+
+immunogen_map <- left_join(x = map_data("world"), y = immunogen_map, by = "region")
+
+immunogen_map$acc_cov <- as.numeric(immunogen_map$acc_cov)
+
+region.lab.data <- immunogen_map %>%
+  group_by(region) %>%
+  summarise(long_cent = median(long), lat_cent = median(lat))
+
+save(list = c("immunogen", "immunogen_map"), 
+     file = here("Data", "immunogen_dataframes.Rdata"))
+
+}
+
+load(file = here("Data", "immunogen_dataframes.Rdata"))
+
+{
+region.lab.data <- immunogen_map %>%
+  group_by(region) %>%
+  summarise(long_cent = median(long), lat_cent = median(lat))
+  
+g <- ggplot(immunogen_map, aes(x = long, y = lat, label = region)) + geom_polygon(aes( group = group, fill = acc_cov))
+
+g <- g + ggrepel::geom_label_repel(data = region.lab.data %>% 
+                                     filter(region %in% c("Thailand", "Brazil", "Philippines")),
+                                   aes(long_cent, lat_cent,
+                                       label = c(paste0("Brazil\n", immunogen_map %>% filter(country == "Brazil") %>% pull(acc_cov) %>% unique(), "%"), 
+                                                 paste0("Philippines\n", immunogen_map %>% filter(country == "Philippines") %>% pull(acc_cov) %>% unique(), "%"), 
+                                                 paste0("Thailand\n", immunogen_map %>% filter(country == "Thailand") %>% pull(acc_cov) %>% unique(), "%"))),
+                                   color = 'black', 
+                                   size  = 3, point.padding = NA, nudge_x = c(25, 20, -5), nudge_y = c(0,0,-25))
+
+g <- g + scale_fill_gradient(low = brewer.pal(9, "BuGn")[2], high = brewer.pal(9, "PuBuGn")[9], na.value = "grey90", 
+                             guide = "colorbar", breaks = c(20, 40, 60, 80), labels = c("20%", "40%", "60%", "80%"), 
+                             limits = c(0,100))
+
+g <- g + theme(legend.position = "bottom", 
+               panel.background = element_blank(), panel.grid = element_blank(),
+               axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), 
+               legend.margin = margin(0)) + theme(plot.margin = margin(0,0,0,0))
+
+g <- g + guides(fill = guide_colorbar(title = "Population coverage (country-wise)",  ticks = FALSE, 
+                                      title.theme = element_text(size = 9, hjust = 0.5), title.position = "top", 
+                                      label.theme = element_text(size = 7), nbin = 5000, barheight = 0.5,
+                                      barwidth = 12, raster = TRUE, draw.llim = FALSE, draw.ulim = FALSE))
+
+fig_tmpB <- g
+
+immunogen %>% arrange(desc(order)) -> immunogen
+
+immunogen %>% pull(Epitope) %>% factor(levels = immunogen$Epitope) -> immunogen$Epitope
+
+immunogen$`MHC Allele Names` <- str_replace_all(string = immunogen$`MHC Allele Names`, 
+                                                   pattern = "HLA-", replacement = "")
+
+# immunogen$`MHC Allele Names`[which(str_count(immunogen$`MHC Allele Names`, ",")>=2)] <-
+  str_replace(string = immunogen$`MHC Allele Names`[which(str_count(immunogen$`MHC Allele Names`, ",")>=2)], ",", ", ")
+
+immunogen_df <- immunogen %>% gather(key = IdDkey, value = IdDvalue, c(IdD1, IdD2, IdD3, IdD4))
+
+immunogen_df$IdDkey <- immunogen_df %>% pull(IdDkey) %>% 
+  factor(levels = c("IdD1", "IdD2", "IdD3", "IdD4"), 
+         labels = c("DENV1", "DENV2", "DENV3", "DENV4"))
+
+colorings <- c(brewer.pal(12, "Paired")[1], brewer.pal(9, "Set1")[c(5,4)], brewer.pal(12, "Paired")[c(5, 12)], brewer.pal(9, "Set1")[2], brewer.pal(12, "Paired")[9], brewer.pal(9, "Set1")[9], brewer.pal(9, "Set1")[1], brewer.pal(12, "Paired")[7])
+
+names(colorings) <- c("C", "E", "NS1", "NS2a", "NS2b", "NS3", "NS4a", "NS4b", "NS5", "prM")
+
+gf <- ggplot(data = immunogen_df, mapping = aes(x = IdDkey, y = Epitope, fill = IdDvalue))
+
+gf <- gf + geom_tile(color = "grey60", width = 0.60, height = 0.60)
+
+gf <- gf + scale_fill_gradient(low = "white",# brewer.pal(9, "PuBu")[1],
+                               high = brewer.pal(9, "PuBu")[9],
+                               guide = "colorbar", 
+                               limits = c(0,1),
+                               breaks = c(0, 0.5, 1),
+                               labels = c("0", "0.5", "1"),
+                               name = "Fraction of sequences") 
+
+
+gf <- gf + geom_rect(xmin = -3, xmax = 0, ymin = 0, ymax = nrow(immunogen) + 1, fill = "white") + expand_limits(x = -3)
+
+gf <- gf + geom_text(aes(color = Protein, label = Epitope, angle = 0, hjust = 0), 
+                     size = 2.75, fontface = "plain", x = -3, show.legend = TRUE) 
+
+gf <- gf + scale_colour_manual(values = colorings, name = "Protein")
+
+gf <- gf + theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), panel.background = element_rect(fill = "white"))
+
+gf <- gf + ylab("Epitopes") + xlab("Serotypes") + scale_x_discrete(position = "top")
+
+gf <- gf + theme(axis.text.x = element_text(angle = 90, size = 7, hjust = 0.5,  vjust = c(0,1,0,1), color = "grey5", face = "bold"), 
+                 axis.ticks.x = element_blank())
+
+gf <- gf + theme(panel.grid = element_blank(),
+                 strip.background = element_blank(),
+                 strip.text = element_blank(), axis.ticks.y = element_blank(),
+                 axis.text.y = element_blank(),
+                 plot.title = element_text(size = 15, face = "bold", hjust = 1, vjust = 0.5),
+                 plot.subtitle = element_blank(),
+                 axis.title.y = element_text(),
+                 axis.title.x = element_text(hjust = 0.75),
+                 legend.title = element_text(size = 9),
+                 legend.text = element_text(size = 7),
+                 legend.key = element_rect(fill = "white", color = "white"),
+                 legend.spacing.x = unit(0.5, "cm"), legend.box = "vertical", legend.spacing.y = unit(0, "cm"),
+                 legend.box.just = "top", legend.box.margin = margin(0),
+                 legend.key.size = unit(x = 10, units = "pt"),
+                 legend.position = "bottom")
+
+gf <- gf + theme(panel.spacing.x = unit(0, "lines")) +
+  guides(fill=guide_colorbar(title.vjust = 0.85, order = 1, label.theme = element_text(size = 8, margin = margin(t=2)))) +
+  guides(color=guide_legend(override.aes = list(labels = c(
+    paste0("E (", immunogen %>% filter(Protein=="E") %>% n_distinct(), ")"),
+    paste0("NS3 (", immunogen %>% filter(Protein=="NS3") %>% n_distinct(), ")"),
+    paste0("NS4b (", immunogen %>% filter(Protein=="NS4b") %>% n_distinct(), ")"),
+    paste0("NS5 (", immunogen %>% filter(Protein=="NS5") %>% n_distinct(), ")")), 
+    size = 2.75), 
+    label = FALSE, 
+    title = "Protein", 
+    title.theme = element_text(size = 9), order = 2)) 
+
+g1f <- ggplot(data = immunogen_df, mapping = aes(x = Epitope, y = (SCov/4)/100, fill = `MHC Allele Classes`))
+
+g1f <- g1f + geom_col(width = 0.5, show.legend = TRUE) 
+
+g1f <- g1f + scale_y_continuous(breaks = c(0, 0.25, 0.50), 
+                                labels = c("0%", "25%", "50%"), 
+                                position = "right")
+
+g1f <- g1f + scale_fill_manual(labels = c("HLA class I", "HLA class II"), 
+                               values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), 
+                               name = "")
+
+g1f <- g1f + xlab("Associated   HLA   allele(s)") + 
+  ylab("Individual\ncoverage") + 
+  coord_flip(clip = "off", ylim = c(-0.45, 0.50))
+
+g1f <- g1f + theme(panel.grid = element_blank(),
+                   plot.background = element_blank(),
+                   panel.background = element_blank(), 
+                   axis.text.y = element_blank(), 
+                   axis.ticks.y = element_blank())
+
+g1f <- g1f + theme(axis.text.x = element_text(size = 8), 
+                   legend.position = "bottom", 
+                   legend.text = element_text(size = 7), 
+                   legend.title = element_text(size = 8), 
+                   legend.key.size = unit(x = 10, units = "pt")) 
+
+g1f <- g1f + theme(axis.line.x = element_blank(), axis.ticks.x = element_line()) + 
+  geom_hline(yintercept = 0, color = "grey45")
+
+g1f <- g1f + geom_rect(ymin = -0.45, ymax = 0, xmin = 0, xmax = nrow(immunogen_df) + 1, 
+                       fill = "white", show.legend = FALSE) + 
+  expand_limits(y = -0.45) 
+
+g1f <- g1f + geom_text(aes(color = `MHC Allele Classes`, 
+                           label = `MHC Allele Names`, 
+                           angle = 0, hjust = 0), 
+                       size = 2.25, fontface = "plain", y = -0.45, show.legend = FALSE) 
+
+g1f <- g1f + scale_colour_manual(labels = c("I", "II"), 
+                                 values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), 
+                                 name = "HLA allele")
+
+g1f <- g1f + geom_segment(y = 0, yend = max(immunogen$SCov/100), 
+                          x = length(immunogen$Epitope)+0.6, xend = length(immunogen$Epitope)+0.6, 
+                          size = 0.2, color = "grey45", show.legend = FALSE) + 
+  guides(color = FALSE)
+
+
+g2f <- ggplot(data = immunogen_df, mapping = aes(x = Epitope, y = AccCov, group = 1))
+
+g2f <- g2f + geom_line(linetype = "dashed") + geom_point(aes(shape = "a"), size = 2)
+
+g2f <- g2f + scale_y_continuous(breaks = c(40, 60, 80, 100), 
+                                labels = c("40%", "60%", "80%", "100%"), 
+                                position = "right") 
+
+g2f <- g2f + theme(panel.grid.minor = element_blank(), 
+                   plot.background = element_blank(),
+                   panel.background = element_blank())
+
+g2f <- g2f + xlab("") + 
+  ylab("Accumulated\ncoverage") + 
+  coord_flip(clip = "on", ylim = c(40, 100))
+
+g2f <- g2f + theme(axis.text.x = element_text(size = 8), 
+                   axis.ticks = element_blank(), 
+                   axis.title.y = element_blank(), 
+                   axis.text.y = element_blank(),
+                   panel.grid.major.x = element_line(color = "grey75", linetype = "dotted"), 
+                   legend.position = "bottom") 
+
+g2f <- g2f + theme(legend.text = element_blank(), 
+                   legend.key = element_blank(), legend.key.size = unit(0, "mm"), 
+                   legend.title = element_blank())
+
+g2f <- g2f +  guides(shape=guide_legend(override.aes = list(labels = "", size = 0), label = FALSE,  
+                            title.theme = element_blank())) 
+
+g2f + theme(axis.line.x = element_line(color = "grey60", size = 0.5), axis.ticks.x = element_line()) -> g2f
+
+gempty <- ggplot(data = immunogen_df) + theme_void()
+
+gf <- gf + theme(plot.margin = unit(c(0,15,0,0), "pt"))
+g1f <- g1f + theme(plot.margin = unit(c(0,0,0,0), "pt"))
+g2f <- g2f + theme(plot.margin = unit(c(0,0,0,0), "pt")) + 
+  geom_segment(y = max(immunogen_df$AccCov), yend = max(immunogen_df$AccCov), 
+               x = 1, xend = length(immunogen_df$Epitope), 
+               color = "grey45", linetype = "dashed", 
+               show.legend = FALSE) + 
+  guides(color = FALSE)
+
+
+
+fig_tmpA <- ggarrange(gempty,
+                      ggarrange(gf, g1f, g2f, ncol = 3, nrow = 1, widths = c(1.2,1.2,1), align = "hv", 
+                                common.legend = FALSE,  legend = "bottom"), 
+                      ncol = 1, nrow = 2, heights = c(0.50,10), align = "hv")
+}
+
+fig_tmp <- ggarrange(fig_tmpA, 
+                     ggarrange(gempty, fig_tmpB, gempty, ncol = 3, nrow = 1, 
+                               widths = c(0.15,1,0.15)),  
+                     ncol = 1, nrow = 2, labels = c("A", "B"), align = "h", 
+                     common.legend = FALSE, heights = c(2.2,1.6)) 
+
+ggsave(filename = here("Figure", "Figure-5.png"), plot = fig_tmp, device = "png", 
+       width = 8.2, height = 10, units = "in", dpi = 1200)
+
+# ggsave(filename = here("Figure", "Figure-5.tiff"), plot = fig_tmp, device = "tiff",
+#        width = 8.2, height = 10, units = "in", dpi = 195)
+
+```
+
+<style type="text/css">
+.main-container {
+  max-width: 1500px;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+</style>
+
+
+### Comprehensive table of pan-serotypic conservation profiles of DENV T cell epitopes
+
+This table provides a comprehensive list of experimentally determined DENV T cell epitopes showing their conservation profiles (i.e., conservation within each DENV serotype) along the associated HLA alleles.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+
+library(here)
+library(tidyverse)
+library(RColorBrewer)
+library(formattable)
+library(DT)
+
+protein_datatable_out <- readRDS(here("Data", "protein_datatable_out.Rds"))
+
+protein_datatable_out %>% 
+  mutate_if(is.numeric, round, 2) %>% 
+  arrange(as.numeric(`IEDB ID`)) %>%
+  # arrange(desc(meanID)) %>% 
+  select(`IEDB ID`, `Epitope Sequence`, `MHC Allele Names`, `MHC Allele Classes`,
+         Protein, IdD1, IdD2, IdD3, IdD4) -> df
+
+colnames(df) <- c("IEDB ID", "Epitope", "HLA Alleles", "HLA Class",
+                  "Protein",  
+                  "DENV1 Cons.", "DENV2 Cons.", "DENV3 Cons.", "DENV4 Cons.")
+
+dt <- datatable(df, editable = FALSE,
+                caption = htmltools::tags$caption(style = 'caption-side: top; text-align: center; 
+                                                  color:black; font-size:200% ;',
+                                                  'S1 File: Cross-serotypic conservation profiles of DENV T cell epitopes experimentally-determined from human hosts'),
+                   filter = list(position = 'top', clear = 'TRUE'), 
+                   rownames = FALSE,
+                   autoHideNavigation = TRUE, 
+                    options = list(dom = 'Brtip',
+                                   fixedHeader = FALSE,
+                                   pageLength = 25, 
+                                   paging = TRUE,
+                                   lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100", "All")),
+                                   autowidth = TRUE, 
+                                   scrollX = TRUE,
+                                   buttons = c('copy', 'print', 'csv'),
+                                   columnDefs = list(list(className = 'dt-center', targets = 0:8),
+                                                     list(width = '200px', targets = c(1)),
+                                                     list(width = '250px', targets = c(2)),
+                                                     list(width = '110px', targets = c(3)),
+                                                     list(width = '80px', targets = c(4:8)))), 
+                   extensions = c('FixedHeader', 'Buttons')) %>% 
+  formatStyle(columns = c(6,7,8,9), 
+              background = styleColorBar(c(df$`DENV1 Cons.`, df$`DENV2 Cons.`, df$`DENV3 Cons.`, df$`DENV4 Cons.`), 
+                                         color = brewer.pal(8, "GnBu")[6]),
+              backgroundSize = '80% 90%',
+              backgroundRepeat = 'no-repeat', backgroundPosition = 'center')
+
+# dt
+
+DT::saveWidget(widget = dt, selfcontained = TRUE, 
+               title = "S1 File: Cross-serotypic conservation profiles of DENV T cell epitopes experimentally-determined from human hosts", 
+               file = here::here("Data", "S1 File.html"))
+
+
+```
+
+```{r}
+
+# df_top_epi_info <- readRDS(here("Data", "protein_datatable_out.Rds"))
+
+df_top_epi_info %>% 
+  filter(order3 == "T") %>% 
+  mutate_if(is.numeric, round, 2) %>% 
+  arrange(as.numeric(`IEDB ID`)) %>%
+  # arrange(desc(meanID)) %>% 
+  select(`IEDB ID`, `Epitope Sequence`, Protein,  `MHC Allele Names`,
+         `Response Freq.`, RFP, `MHC Allele Tested`, `MHC Qualitative Result`, `MHC Quantitative Result`, 
+         IdD1, IdD2, IdD3, IdD4) -> df
+
+colnames(df) <- c("IEDB ID", "Epitope", "Protein", "HLA Alleles",
+                  "Response Freq.", "Response Freq. Percentile", "HLA Alleles Tested", 
+                  "Qualitative Binding", "Quantitative Binding (nM)",
+                  "DENV1 Cons.", "DENV2 Cons.", "DENV3 Cons.", "DENV4 Cons.")
+
+dt <- datatable(df, editable = FALSE, width = 1950,
+                                caption = htmltools::tags$caption(style = 'caption-side: top; text-align: center; 
+                                                  color:black; font-size:200% ;',
+                                                  'S2 File: Cross-serotypic conservation profiles and immune response data of the top 55 conserved DENV T cell epitopes identified in this study (Fig. 3)'),
+                   filter = list(position = 'top', clear = 'TRUE'), 
+                   rownames = FALSE,
+                   autoHideNavigation = TRUE, 
+                    options = list(dom = 'Brtip',
+                                   fixedHeader = FALSE,
+                                   pageLength = 25, 
+                                   paging = TRUE,
+                                   lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100", "All")),
+                                   autowidth = TRUE, 
+                                   scrollX = TRUE,
+                                   buttons = c('copy', 'print', 'csv'),
+                                   columnDefs = list(list(className = 'dt-center', targets = 0:12),
+                                                     list(width = '200px', targets = c(1)),
+                                                     list(width = '80px', targets = c(2)),
+                                                     list(width = '110px', targets = c(3)),
+                                                     list(width = '90px', targets = c(4:7)),
+                                                     list(width = '80px', targets = c(8)),
+                                                     list(width = '80px', targets = c(9:12)))), 
+                   extensions = c('FixedHeader', 'Buttons')) 
+# %>% 
+#   formatStyle(columns = c(10,11,12,13), 
+#               background = styleColorBar(c(df$`DENV1 Cons.`, df$`DENV2 Cons.`, df$`DENV3 Cons.`, df$`DENV4 Cons.`), 
+#                                          color = brewer.pal(8, "GnBu")[6]),
+#               backgroundSize = '80% 90%',
+#               backgroundRepeat = 'no-repeat', backgroundPosition = 'center')
+
+DT::saveWidget(widget = dt, selfcontained = TRUE, 
+               title = "S2 File: Cross-serotypic conservation profiles and immune response data of the top 55 conserved DENV T cell epitopes identified in this study (Fig. 3)", 
+               file = here::here("Data", "S2 File.html"))
+
+
+```
+
+
+### Comparison of the T cell epitopes from Human and Transgenic Mouse
+
+```{r}
+
+library(here)
+library(tidyverse)
+library(RColorBrewer)
+library(formattable)
+library(DT)
+
+dt_human <- readRDS(here::here("Data", "protein_datatable_out.Rds"))
+
+dt_trans <- readRDS(here::here("Data", "protein_datatable_out_TransgenicMouse.Rds"))
+
+common_dt <- inner_join(x = dt_human %>% filter(str_detect(order3, "T")), y = dt_trans %>% filter(str_detect(order3, "T")), by = c("IEDB ID"))
+
+new_dt <- anti_join(x = dt_trans %>% filter(str_detect(order3, "T")), y = dt_human %>% filter(str_detect(order3, "T")), by = c("IEDB ID"))
+
+dt_trans <- dt_trans %>% mutate(Host = case_when(
+  dt_trans$`Epitope Sequence` %in% dt_human$`Epitope Sequence` ~ "Tg Mouse, Human",
+  !(dt_trans$`Epitope Sequence` %in% dt_human$`Epitope Sequence`) ~ "Tg Mouse",
+  ))
+
+dt_trans %>% 
+  mutate_if(is.numeric, round, 2) %>% 
+  # arrange(as.numeric(`IEDB ID`)) %>% 
+  arrange(desc(meanID)) %>% 
+  select(`IEDB ID`, `Epitope Sequence`, Host, `MHC Allele Names`, `MHC Allele Classes`,
+         Protein, IdD1, IdD2, IdD3, IdD4) -> df
+
+colnames(df) <- c("IEDB ID", "Epitope", "Host(s)", "HLA Alleles", "HLA Class",
+                  "Protein",  
+                  "DENV1 Cons.", "DENV2 Cons.", "DENV3 Cons.", "DENV4 Cons.")
+
+dt <- datatable(df, editable = FALSE, width = 1200, 
+                caption = htmltools::tags$caption(style = 'caption-side: top; text-align: center; 
+                                                  color:black; font-size:200% ;',
+                                                  'S3 File: Cross-serotypic conservation profiles of 213 DENV T cell epitopes experimentally-determined from HLA-transgenic mice'),
+                   filter = list(position = 'top', clear = 'TRUE'), 
+                   rownames = FALSE,
+                   autoHideNavigation = TRUE, 
+                    options = list(dom = 'Brtip',
+                                   fixedHeader = FALSE,
+                                   pageLength = 25, 
+                                   paging = TRUE,
+                                   lengthMenu = list(c(25, 50, 100, -1), c("25", "50", "100", "All")),
+                                   autowidth = TRUE, 
+                                   scrollX = TRUE,
+                                   buttons = c('copy', 'print', 'csv'),
+                                   columnDefs = list(list(className = 'dt-center', targets = 0:9),
+                                                     list(width = '200px', targets = c(1)),
+                                                     list(width = '250px', targets = c(2)),
+                                                     list(width = '250px', targets = c(3)),
+                                                     list(width = '110px', targets = c(4)),
+                                                     list(width = '80px', targets = c(4:8)))), 
+                   extensions = c('FixedHeader', 'Buttons')) %>% 
+  formatStyle(columns = c(7,8,9,10), 
+              background = styleColorBar(c(df$`DENV1 Cons.`, df$`DENV2 Cons.`, df$`DENV3 Cons.`, df$`DENV4 Cons.`), 
+                                         color = brewer.pal(8, "GnBu")[6]),
+              backgroundSize = '80% 90%',
+              backgroundRepeat = 'no-repeat', backgroundPosition = 'center')
+
+DT::saveWidget(widget = dt, selfcontained = TRUE,  
+               title = "S3 File: Cross-serotypic conservation profiles of 213 DENV T cell epitopes experimentally-determined from HLA-transgenic mice", 
+               file = here::here("Data", "S3 File.html"))
+
+dt_trans %>% filter(order3 == "T") -> df
+
+source(here("Functions", "generate.suppl_new.R"))
+fig_tmp <- generate.suppl_new(ProteinDatatableOut = df)
+
+```
+
+### Response frequency and MHC binding assay details of top conserved T cell epitopes from Human
+
+```{r}
+
+protein_datatable_out <- readRDS(here::here("Data", "protein_datatable_out.Rds"))
+
+protein_datatable_out$`IEDB ID` <- as.double(protein_datatable_out$`IEDB ID`)
+
+# protein_datatable_out <- inner_join(x = protein_datatable_out, y = df_immonogen_browser, c("IEDB ID", "Epitope Sequence"))
+
+# df_immonogen_browser <- readr::read_csv(file = here::here("Data", "immunomebrowser_Human.csv"), 
+#                                         col_names = TRUE)
+# 
+# df_immonogen_browser <- df_immonogen_browser %>% select(`Epitope ID`, Sequence, 
+#                                                         `Subjects Tested`, `Subjects Responded`, 
+#                                                         `Assays Positive`, `Assays Negative`, 
+#                                                         `Response Freq.`, `Lower Bound of 95% CI`, `Upper Bound of 95% CI`)
+
+
+df_ALL_immonogen_browser <- readr::read_csv(file = here::here("Data", "immunomebrowser_All_DENV_Human.csv"), 
+                                        col_names = TRUE)
+
+df_ALL_immonogen_browser <- df_ALL_immonogen_browser %>% select(`Epitope ID`, Sequence, 
+                                                        `Subjects Tested`, `Subjects Responded`, 
+                                                        `Assays Positive`, `Assays Negative`, 
+                                                        `Response Freq.`, `Lower Bound of 95% CI`, `Upper Bound of 95% CI`)
+
+names(df_ALL_immonogen_browser)[names(df_ALL_immonogen_browser) == "Epitope ID"] <- "IEDB ID"
+
+names(df_ALL_immonogen_browser)[names(df_ALL_immonogen_browser) == "Sequence"] <- "Epitope Sequence"
+
+percentile <- ecdf(df_ALL_immonogen_browser %>% pull(`Response Freq.`)) # %>% filter(`Response Freq.` > 0) 
+
+
+df_immonogen_browser <- df_ALL_immonogen_browser %>% filter(`IEDB ID` %in% protein_datatable_out$`IEDB ID`)
+
+
+df_top_epi_info <- df_immonogen_browser %>% 
+  select(`IEDB ID`, `Epitope Sequence`, `Response Freq.`, `Assays Positive`, `Subjects Responded`,
+         `Lower Bound of 95% CI`, `Upper Bound of 95% CI`) %>%
+  mutate(RFP = percentile(`Response Freq.`))
+
+
+df_mhc_assay <- readr::read_csv(file = here::here("Data", "mhc_ligand_assay.csv"), 
+                                        col_names = TRUE, skip = 1)
+
+df_mhc_assay %>% select(`Epitope ID`, Description, `Allele Name`, `MHC allele class`, `Method/Technique`, `Qualitative Measure`, `Quantitative measurement`, Units) %>% as.data.frame() -> df_mhc_assay
+
+colnames(df_mhc_assay) <- c("IEDB ID", "Epitope Sequence", "MHC Allele Name", "MHC Allele Class", "Method", "Qualitative", "Quantitative", "Units")
+
+
+df_top_epi_info <- left_join(x = df_top_epi_info, 
+                             y = protein_datatable_out %>% 
+                               select(`IEDB ID`, `Epitope Sequence`, `MHC Allele Names`, Protein, 
+                                      order4, order3, meanID, IdD1, IdD2, IdD3, IdD4), 
+                             by = c("IEDB ID", "Epitope Sequence"))
+
+protein_datatable_full <- left_join(x = protein_datatable_out, y = df_mhc_assay, c("IEDB ID", "Epitope Sequence"))
+
+df_ligand_info <- protein_datatable_full %>% 
+  select(`IEDB ID`, `Epitope Sequence`, `MHC Allele Names`, `MHC Allele Classes`, 
+         order4, order3, Protein, `MHC Allele Name`, Qualitative, Quantitative, Units)
+
+df_ligand_info <- df_ligand_info %>%
+  mutate(mhc1 = str_remove_all(string = `MHC Allele Names`, pattern = "\\*")) %>%
+  mutate(mhc2 = str_remove_all(string = `MHC Allele Name`, pattern = "\\*"))
+
+df_ligand_info <- df_ligand_info %>% filter(str_detect(string = df_ligand_info$mhc1,
+                                                       pattern = df_ligand_info$mhc2))
+
+df_ligand_info <- df_ligand_info %>% filter(Quantitative > 0) %>% arrange(Quantitative)
+
+df_ligand_info <- df_ligand_info %>% separate_rows(`MHC Allele Names`, sep = ",")
+
+df_ligand_info <- df_ligand_info %>% 
+  distinct_at(.vars = vars(`IEDB ID`, `Epitope Sequence`, `MHC Allele Names`, `MHC Allele Name`), 
+              .keep_all = TRUE)
+
+df_ligand_info$Qualitative[df_ligand_info$`MHC Allele Names` != df_ligand_info$`MHC Allele Name`] <- NA
+df_ligand_info$Quantitative[df_ligand_info$`MHC Allele Names` != df_ligand_info$`MHC Allele Name`] <- NA
+df_ligand_info$Units[df_ligand_info$`MHC Allele Names` != df_ligand_info$`MHC Allele Name`] <- NA
+
+df_ligand_info <- df_ligand_info %>% arrange(Quantitative)
+
+df_ligand_info <- df_ligand_info %>% 
+  distinct_at(.vars = vars(`IEDB ID`, `Epitope Sequence`, `MHC Allele Names`), 
+              .keep_all = TRUE)
+
+df_ligand_info$`MHC Allele Name` <- df_ligand_info$`MHC Allele Names`
+
+df_ligand_info <- df_ligand_info %>% select(`IEDB ID`, `Epitope Sequence`, Protein, order4, order3, 
+                                            `MHC Allele Classes`,
+                                            `MHC Allele Name`, Qualitative, Quantitative, Units) %>% 
+  group_by(`IEDB ID`, `Epitope Sequence`) %>% 
+  summarise("MHC Allele Tested" = paste(`MHC Allele Name`, collapse = ", "), 
+            "MHC Qualitative Result" =  paste(Qualitative, collapse = ", "),
+            "order4" = unique(order4),
+            "order3" = unique(order3),
+            "Protein" = unique(Protein),
+            "MHC Quantitative Result" =  paste(Quantitative, collapse = ", "),
+            "Units" = paste(Units, collapse = ", "))
+
+df_top_epi_info <- left_join(x = df_top_epi_info, 
+                             y = df_ligand_info %>% 
+                               select(`IEDB ID`, `Epitope Sequence`, 
+                                      `MHC Allele Tested`, `MHC Qualitative Result`, 
+                                      `MHC Quantitative Result`, Units), 
+                             by = c("IEDB ID", "Epitope Sequence"))
+
+
+df_top_epi_info <- df_top_epi_info %>% mutate_all(funs(replace_na(., "NA")))
+
+ProteinDatatableOut = df_top_epi_info
+
+
+source(here::here("Functions", "generate.figure3_revision.R"))
+fig_tmp <- generate.figure3_revision(ProteinDatatableOut = df_top_epi_info)
+
+ggsave(filename = here("Figure", "Figure-3_rev.tiff"), 
+       plot = fig_tmp, device = "tiff", 
+       width = 7.5, height = 9, units = "in", 
+       dpi = 300)
+
+
+
+```
+
+### Comparing the peptides/epitopes from similar previous works with the top conserved identified epitopes in this work 
+
+```{r}
+
+
+df_top <- dt_human %>% filter(order3 == "T")
+
+# df_top <- df_top_epi_info
+
+
+# Khan2008 peptide-entropy DENV 44 ####
+
+NUM_MAX_MISMATCHES = round(df_top$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Khan2008 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Khan2008", col_names = TRUE)
+
+colnames(df_Khan2008) <- "Epitope Sequence"
+
+teiptope_dict <- AAStringSet(df_Khan2008$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_Khan2008)[1], ncol = dim(df_top)[1])
+
+for (i in seq.int(1, dim(df_top)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_top$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_pep_ep <- rowSums(temp)
+pep_Khan2008 <- temp1_pep_ep
+
+temp2_pep_ep <- colSums(temp)
+
+NUM_MAX_MISMATCHES = round(df_Khan2008$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+
+df_Khan2008 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Khan2008", col_names = TRUE)
+
+colnames(df_Khan2008) <- "Epitope Sequence"
+
+teiptope_dict <- AAStringSet(df_top$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_top)[1], ncol = dim(df_Khan2008)[1])
+
+for (i in seq.int(1, dim(df_Khan2008)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_Khan2008$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_ep_pep <- rowSums(temp)
+ep_Khan2008 <- temp1_ep_pep
+
+temp2_ep_pep <- colSums(temp)
+
+
+# Olsen2011 block-entropy DENV 78 ####
+
+NUM_MAX_MISMATCHES = round(df_top$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Olsen2011 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Olsen2011_ext", col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_Olsen2011$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_Olsen2011)[1], ncol = dim(df_top)[1])
+
+for (i in seq.int(1, dim(df_top)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_top$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_pep_ep <- rowSums(temp)
+pep_Olsen2011 <- temp1_pep_ep
+
+temp2_pep_ep <- colSums(temp)
+
+NUM_MAX_MISMATCHES = round(df_Olsen2011$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Olsen2011 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Olsen2011_ext", col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_top$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_top)[1], ncol = dim(df_Olsen2011)[1])
+
+for (i in seq.int(1, dim(df_Olsen2011)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_Olsen2011$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_ep_pep <- rowSums(temp)
+ep_Olsen2011 <- temp1_ep_pep
+
+temp2_ep_pep <- colSums(temp)
+
+# Nascimento2013 Tg-mouse DENV 146 ####
+
+NUM_MAX_MISMATCHES = round(df_top$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Nascimento2013 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Nascimento2013", col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_Nascimento2013$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_Nascimento2013)[1], ncol = dim(df_top)[1])
+
+for (i in seq.int(1, dim(df_top)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_top$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_pep_ep <- rowSums(temp)
+pep_Nascimento2013 <- temp1_pep_ep
+
+temp2_pep_ep <- colSums(temp)
+
+NUM_MAX_MISMATCHES = round(df_Nascimento2013$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Nascimento2013 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Nascimento2013", col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_top$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_top)[1], ncol = dim(df_Nascimento2013)[1])
+
+for (i in seq.int(1, dim(df_Nascimento2013)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_Nascimento2013$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_ep_pep <- rowSums(temp)
+ep_Nascimento2013 <- temp1_ep_pep
+
+temp2_ep_pep <- colSums(temp)
+
+
+
+# Chong2019 HCSS DENV 706 ####
+
+NUM_MAX_MISMATCHES = round(df_top$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Chong2019 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Chong2019_exp_match", 
+                                   col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_Chong2019$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_Chong2019)[1], ncol = dim(df_top)[1])
+
+for (i in seq.int(1, dim(df_top)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_top$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_pep_ep <- rowSums(temp)
+pep_Chong2019 <- temp1_pep_ep
+
+temp2_pep_ep <- colSums(temp)
+
+
+NUM_MAX_MISMATCHES = round(df_Chong2019$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Chong2019 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Chong2019_exp_match", 
+                                   col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_top$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_top)[1], ncol = dim(df_Chong2019)[1])
+
+for (i in seq.int(1, dim(df_Chong2019)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_Chong2019$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_pep_ep <- rowSums(temp)
+ep_Chong2019 <- temp1_ep_pep
+
+temp2_pep_ep <- colSums(temp)
+
+
+# df_cons1 <- dt_human %>% filter(order1 == "T") %>% filter(order2 == "F") %>% filter(order3 == "F") %>% filter(order4 == "F")
+# 
+# NUM_MAX_MISMATCHES = round(df_cons1$`Epitope Sequence` %>% str_length() * 0.25)
+# NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+# 
+# temp <- matrix(nrow = dim(df_Chong2019)[1], ncol = dim(df_cons1)[1])
+# 
+# for (i in seq.int(1, dim(df_cons1)[1])) {
+#     temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+#                           subject = AAString(df_cons1$`Epitope Sequence`[i]), 
+#                           max.mismatch = NUM_MAX_MISMATCHES[i]))
+# }
+# 
+# temp1 <- rowSums(temp)
+# 
+# temp2 <- colSums(temp)
+
+
+# Tian2019 Review DENV 161 ####
+
+NUM_MAX_MISMATCHES = round(df_top$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Tian2019 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Tian2019", 
+                                   col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_Tian2019$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_Tian2019)[1], ncol = dim(df_top)[1])
+
+for (i in seq.int(1, dim(df_top)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_top$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_pep_ep <- rowSums(temp)
+pep_Tian2019 <- temp1_pep_ep
+
+temp2_pep_ep <- colSums(temp)
+
+NUM_MAX_MISMATCHES = round(df_Tian2019$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Tian2019 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Tian2019", 
+                                   col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_top$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_top)[1], ncol = dim(df_Tian2019)[1])
+
+for (i in seq.int(1, dim(df_Tian2019)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_Tian2019$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_ep_pep <- rowSums(temp)
+ep_Tian2019 <- temp1_ep_pep
+
+temp2_ep_pep <- colSums(temp)
+
+# Waickman2019 TAK-003 109 ####
+
+NUM_MAX_MISMATCHES = round(df_top$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Waickman2019 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Waickman2019", 
+                                   col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_Waickman2019$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_Waickman2019)[1], ncol = dim(df_top)[1])
+
+for (i in seq.int(1, dim(df_top)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_top$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_pep_ep <- rowSums(temp)
+pep_Waickman2019 <- temp1_pep_ep
+
+temp2_pep_ep <- colSums(temp)
+
+NUM_MAX_MISMATCHES = round(df_Waickman2019$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Waickman2019 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Waickman2019", 
+                                   col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_top$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_top)[1], ncol = dim(df_Waickman2019)[1])
+
+for (i in seq.int(1, dim(df_Waickman2019)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_Waickman2019$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_ep_pep <- rowSums(temp)
+ep_Waickman2019 <- temp1_ep_pep
+
+temp2_ep_pep <- colSums(temp)
+
+
+# Weiskopf2013 CD8+ comprehensive 51 ####
+
+NUM_MAX_MISMATCHES = round(df_top$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Weiskopf2013 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Weiskopf2013", 
+                                   col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_Weiskopf2013$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_Weiskopf2013)[1], ncol = dim(df_top)[1])
+
+for (i in seq.int(1, dim(df_top)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_top$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_pep_ep <- rowSums(temp)
+pep_Weiskopf2013 <- temp1_pep_ep
+
+temp2_pep_ep <- colSums(temp)
+
+NUM_MAX_MISMATCHES = round(df_Weiskopf2013$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Weiskopf2013 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Weiskopf2013", 
+                                   col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_top$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_top)[1], ncol = dim(df_Weiskopf2013)[1])
+
+for (i in seq.int(1, dim(df_Weiskopf2013)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_Weiskopf2013$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_ep_pep <- rowSums(temp)
+ep_Weiskopf2013 <- temp1_ep_pep
+
+temp2_ep_pep <- colSums(temp)
+
+
+# Rivino2013 CD4 and CD8 49 ####
+
+NUM_MAX_MISMATCHES = round(df_top$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Rivino2013 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Rivino2013", 
+                                   col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_Rivino2013$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_Rivino2013)[1], ncol = dim(df_top)[1])
+
+for (i in seq.int(1, dim(df_top)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_top$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_pep_ep <- rowSums(temp)
+pep_Rivino2013 <- temp1_pep_ep
+
+temp2_pep_ep <- colSums(temp)
+
+NUM_MAX_MISMATCHES = round(df_Rivino2013$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Rivino2013 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Rivino2013", 
+                                   col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_top$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_top)[1], ncol = dim(df_Rivino2013)[1])
+
+for (i in seq.int(1, dim(df_Rivino2013)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_Rivino2013$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_ep_pep <- rowSums(temp)
+ep_Rivino2013 <- temp1_ep_pep
+
+temp2_ep_pep <- colSums(temp)
+
+# Weiskopf2015 CD8+ reponse to LAV 94 ####
+
+NUM_MAX_MISMATCHES = round(df_top$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Weiskopf2015 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Weiskopf2015", 
+                                   col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_Weiskopf2015$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_Weiskopf2015)[1], ncol = dim(df_top)[1])
+
+for (i in seq.int(1, dim(df_top)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_top$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_pep_ep <- rowSums(temp)
+pep_Weiskopf2015 <- temp1_pep_ep
+
+temp2_pep_ep <- colSums(temp)
+
+NUM_MAX_MISMATCHES = round(df_Weiskopf2015$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_Weiskopf2015 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "Weiskopf2015", 
+                                   col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_top$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_top)[1], ncol = dim(df_Weiskopf2015)[1])
+
+for (i in seq.int(1, dim(df_Weiskopf2015)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_Weiskopf2015$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_ep_pep <- rowSums(temp)
+ep_Weiskopf2015 <- temp1_ep_pep
+
+temp2_ep_pep <- colSums(temp)
+
+
+
+
+# DeAlwis2016 immunodominance changes 50 ####
+
+NUM_MAX_MISMATCHES = round(df_top$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_DeAlwis2016 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "DeAlwis2016", 
+                                   col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_DeAlwis2016$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_DeAlwis2016)[1], ncol = dim(df_top)[1])
+
+for (i in seq.int(1, dim(df_top)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_top$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_pep_ep <- rowSums(temp)
+pep_DeAlwis2016 <- temp1_pep_ep
+
+temp2_pep_ep <- colSums(temp)
+
+NUM_MAX_MISMATCHES = round(df_DeAlwis2016$`Epitope Sequence` %>% str_length() * 0.25)
+NUM_MAX_MISMATCHES = rep(0, length(NUM_MAX_MISMATCHES))
+
+df_DeAlwis2016 <- readxl::read_excel(path = here::here("Data", "tables.xlsx"), sheet = "DeAlwis2016", 
+                                   col_names = TRUE)
+
+teiptope_dict <- AAStringSet(df_top$`Epitope Sequence`)
+
+temp <- matrix(nrow = dim(df_top)[1], ncol = dim(df_DeAlwis2016)[1])
+
+for (i in seq.int(1, dim(df_DeAlwis2016)[1])) {
+    temp[,i] <- (countPDict(pdict = (teiptope_dict), 
+                          subject = AAString(df_DeAlwis2016$`Epitope Sequence`[i]), 
+                          max.mismatch = NUM_MAX_MISMATCHES[i]))
+}
+
+temp1_ep_pep <- rowSums(temp)
+ep_DeAlwis2016 <- temp1_ep_pep
+
+temp2_ep_pep <- colSums(temp)
+
+
+
+```
+
+### Conservation plot for HLA Tg-Mice epitopes
+
+```{r}
+
+library(ggpubr)
+
+df <- protein_datatable_full %>%
+filter(order3 == "T") %>%
+arrange(desc(meanID)) %>%
+distinct_at(vars(`MHC Allele Names`), .keep_all = TRUE)
+
+g <- ggplot(data = df)
+g <- ggplot(data = df %>% arrange((meanID)))
+g <- g + geom_pointrange(mapping = aes(x = factor(`Epitope Sequence`, levels = df %>% arrange(desc(meanID)) %>% 
+                                                    pull(`Epitope Sequence`)), 
+                                       y = `Response Freq.`, ymin = `Lower Bound of 95% CI`, ymax = `Upper Bound of 95% CI`), shape = 22, fill = "red")
+g <- g + xlab("")
+g1 <- g + coord_flip() + theme_minimal() 
+g1 <- g1 + theme(panel.grid = element_blank(), panel.border = element_blank())
+
+
+g <- ggplot(data = df)
+g <- ggplot(data = df %>% arrange((meanID)))
+g <- g + geom_col(mapping = aes(x = factor(`Epitope Sequence`, levels = df %>% arrange(desc(meanID)) %>% 
+                                                    pull(`Epitope Sequence`)), 
+                                y = `Assays Positive`/(`Assays Positive` + `Assays Negative`)), 
+                  fill = brewer.pal(5, "Set1")[2], width = 0.5)
+
+g <- g + xlab("") + ylab("Fraction of positive assays")
+g2 <- g + coord_flip() + theme_minimal()
+g2 <- g2 + theme(axis.text.y = element_blank())
+g2 <- g2 + theme(panel.grid = element_blank(), panel.border = element_blank())
+
+
+g <- ggplot(data = df)
+g <- ggplot(data = df %>% arrange((meanID)))
+g <- g + geom_col(mapping = aes(x = factor(`Epitope Sequence`, levels = df %>% arrange(desc(meanID)) %>% 
+                                                    pull(`Epitope Sequence`)), 
+                                y = Quantitative), 
+                  fill = brewer.pal(5, "Set1")[5], width = 0.5) + scale_y_log10()
+
+g <- g + xlab("") + ylab("Quantitative MHC binding (nM)")
+g3 <- g + coord_flip() + theme_minimal()
+g3 <- g3 + theme(axis.text.y = element_blank(), axis.ticks.x = element_blank())
+g3 <- g3 + theme(panel.grid = element_blank(), panel.border = element_blank())
+
+fig <- ggarrange(plotlist = list(g1, g2, g3), ncol = 3, nrow = 1, align = "hv")
+
+
+
+ggsave(filename = here("Figure", "Figure-New.png"), 
+       plot = fig, device = "png", 
+       width = 7.5, height = 5, units = "in", 
+       dpi = 300)
+
+
+
+```
+
+
+
+### Within serotype conservation of each DENV epitope #####
+
+```{r}
+
+NUM_MAX_MISMATCH = 0
+
+proteins = c("E", "prM", "C", "NS1", "NS2a", "NS2b", "NS3", "NS4a", "NS4b", "NS5")
+serotypes = c("DENV1", "DENV2", "DENV3", "DENV4")
+
+pos_cons <- data.frame(protein = rep(proteins, times = length(serotypes)),
+                       serotype = rep(serotypes, each = length(proteins)), stringsAsFactors = FALSE)
+
+for (i in proteins) {
+  data_file <- here("Data/MSA_data", paste0(i, " DENV1 MSA.fasta"))
+  align_MSA <- read.alignment(file = data_file, format = "fasta", forceToLower = FALSE)
+  x <- BALCONY::calculate_AA_variation(alignment = align_MSA)
+  pos_cons$cons[(pos_cons$protein == i) & (pos_cons$serotype == "DENV1")] <- x$percentage[1,] %>% as.numeric() %>% list()
+}
+
+for (i in proteins) {
+  data_file <- here("Data/MSA_data", paste0(i, " DENV2 MSA.fasta"))
+  align_MSA <- read.alignment(file = data_file, format = "fasta", forceToLower = FALSE)
+  x <- BALCONY::calculate_AA_variation(alignment = align_MSA)
+  pos_cons$cons[(pos_cons$protein == i) & (pos_cons$serotype == "DENV2")] <- x$percentage[1,] %>% as.numeric() %>% list()
+}
+
+for (i in proteins) {
+  data_file <- here("Data/MSA_data", paste0(i, " DENV3 MSA.fasta"))
+  align_MSA <- read.alignment(file = data_file, format = "fasta", forceToLower = FALSE)
+  x <- BALCONY::calculate_AA_variation(alignment = align_MSA)
+  pos_cons$cons[(pos_cons$protein == i) & (pos_cons$serotype == "DENV3")] <- x$percentage[1,] %>% as.numeric() %>% list()
+}
+
+for (i in proteins) {
+  data_file <- here("Data/MSA_data", paste0(i, " DENV4 MSA.fasta"))
+  align_MSA <- read.alignment(file = data_file, format = "fasta", forceToLower = FALSE)
+  x <- BALCONY::calculate_AA_variation(alignment = align_MSA)
+  pos_cons$cons[(pos_cons$protein == i) & (pos_cons$serotype == "DENV4")] <- x$percentage[1,] %>% as.numeric() %>% list()
+}
+
+saveRDS(object = pos_cons, file = here::here("Data", "pos_cons"))
+  
+```
+
+# Plots for epitope coverages for each serotype
+
+```{r}
+
+
+NUM_MAX_MISMATCH = 0
+
+proteins = c("E", "prM", "C", "NS1", "NS2a", "NS2b", "NS3", "NS4a", "NS4b", "NS5")
+serotypes = c("DENV1", "DENV2", "DENV3", "DENV4")
+
+
+# DENV1 #####
+
+tep_df_I <- data.frame(values = vector(mode = "numeric"), 
+                       prot = vector(mode = "character"),
+                       class = vector(mode = "character"), 
+                       stringsAsFactors = FALSE)
+
+tep_df_II <- data.frame(values = vector(mode = "numeric"), 
+                       prot = vector(mode = "character"),
+                       class = vector(mode = "character"), 
+                       stringsAsFactors = FALSE)
+
+for (PROTEIN in proteins) {
+  
+  data_file <- here("Data/MSA_data", paste0(PROTEIN, " DENV1 MSA.fasta"))
+  align_MSA <- read.alignment(file = data_file, format = "fasta", forceToLower = FALSE)
+
+  data_file <- here("Data", "TepitopesDENV.fa")
+  Tepitopes_DENV <- read.fasta(file = data_file, seqtype = "AA", as.string = "TRUE")
+  temp <- tolower(as.character(Tepitopes_DENV))
+  teiptope_dict <- AAStringSet(temp)
+
+temp1 <- (vcountPDict(pdict = (teiptope_dict), 
+                          subject = AAStringSet(align_MSA$seq), 
+                          max.mismatch = NUM_MAX_MISMATCH))
+
+
+temp1_ep <- which(temp1 != 0, arr.ind = TRUE)
+
+as.data.frame(temp1_ep) -> temp1_ep
+temp1_ep %>% arrange(col) %>% 
+  group_by(row) %>% 
+  summarise(seqs = paste(col, collapse = ", ")) -> temp1_ep
+
+temp1_ep %>% separate(col = seqs, sep = ", ", into = "first", extra = "drop") -> temp1_ep
+
+temp1_ep$seqindex <- as.numeric(temp1_ep$first)
+temp1_ep$epindex <- as.numeric(temp1_ep$row)
+
+y <- data.frame(Epitope = rep("X",length(temp1_ep$row)),
+                start=rep(0,length(temp1_ep$row)), 
+                end=rep(0,length(temp1_ep$row)), 
+                stringsAsFactors = FALSE)
+
+    for (i in 1:length(temp1_ep$row)) {
+      temp <- (vmatchPattern(pattern = as.character(teiptope_dict[temp1_ep$epindex[i]]), 
+                             subject = align_MSA$seq[temp1_ep$seqindex[i]], 
+                             max.mismatch = NUM_MAX_MISMATCH))
+      y$start[i] <- as.double(IRanges::start(temp))
+      y$end[i] <- as.double(IRanges::end(temp))
+      y$Epitope[i] <- as.character(teiptope_dict[temp1_ep$epindex[i]]) %>% toupper()
+    }
+    
+    y$length <- y$end - y$start + 1
+    
+    y <- right_join(x = ExEpiTcell_DENV %>% 
+                      select(`Epitope Sequence`, `MHC Allele Classes`), 
+               y = y, by = c("Epitope Sequence" = "Epitope"))
+    
+    y_I <- y %>% filter(`MHC Allele Classes` == "I")
+    y_II <- y %>% filter(`MHC Allele Classes` == "II")
+    
+    tep_ind_I = vector()
+    for (i in 1:length(y_I$length)) {
+      if (!is.na(y_I[i,1])){
+        tep_ind_I = c(tep_ind_I, seq.int(from = y_I$start[i], to = y_I$end[i]))}
+    }
+    
+     tep_ind_II = vector()
+    for (i in 1:length(y_II$length)) {
+      if (!is.na(y_II[i,1])){
+        tep_ind_II = c(tep_ind_II, seq.int(from = y_II$start[i], to = y_II$end[i]))}
+    }
+
+tep_df_I <- bind_rows(tep_df_I, 
+                          data.frame(values = tep_ind_I, 
+                                     prot = rep(PROTEIN, length(tep_ind_I)),
+                                     class = rep("I", length(tep_ind_I)), 
+                                     stringsAsFactors = FALSE)) 
+
+tep_df_II <- bind_rows(tep_df_II, 
+                          data.frame(values = tep_ind_II, 
+                                     prot = rep(PROTEIN, length(tep_ind_II)),
+                                     class = rep("II", length(tep_ind_II)), 
+                                     stringsAsFactors = FALSE)) 
+     
+}
+
+
+  # plotting 
+  {   
+    tep_df <- rbind(tep_df_I, tep_df_II)
+
+    tep_df$prot <- factor(tep_df$prot, 
+                          levels = c("E", "prM", "C", "NS1", "NS2a", "NS2b", "NS3", "NS4a", "NS4b", "NS5"),
+                          labels = c("E", "prM", "C", "NS1", "NS2a", "NS2b", "NS3", "NS4a", "NS4b", "NS5"))
+    
+    { g <- ggplot(data = tep_df %>% filter(prot %in% c("NS5")), mapping = aes(x = values, color = class))
+      # g <- g + geom_histogram(binwidth = 1)
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + geom_area(stat = "bin", binwidth = 1, alpha = 0.25, position = "identity", aes(fill = class, y = ..count..))
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 900), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("Position") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      gh_NS5 <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS4a")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 127), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5)
+                                       # ,
+                                       # axis.text.y = element_blank(), axis.ticks.y = element_blank()
+                                       )
+      
+      gh_NS4a <- g}    
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS4b")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 250), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS4b <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS3")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 620), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS3 <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS2b")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 130), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS2b <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS2a")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 218), expand = c(0,5))
+      g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("Position") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS2a <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS1")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 352), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS1 <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("C")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 100), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_C <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("prM")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 166), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_prM <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("E")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 495), expand = c(0,5))
+      g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_E <- g}
+    
+    {g2 <- ggplot(data = data.frame(x = c(" Class I restricted", " Class II restricted"), y = 0), 
+                  mapping = aes(x = x, y = y, color = x))
+      g2 <- g2 + geom_text(aes(label = x, size = 2),  fontface = "bold") 
+      g2 <- g2 + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      g2 <- g2 + theme_void() + theme(legend.position = "none")
+      
+      g2 <- g2 + theme(plot.margin = unit(c(-10,0,0,0), "pt")) +  theme(
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()
+      )}
+    
+    gh_C <- gh_C + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_E <- gh_E + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_prM <- gh_prM + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS1 <- gh_NS1 + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS2a <- gh_NS2a + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS2b <- gh_NS2b + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS3 <- gh_NS3 + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS4a <- gh_NS4a + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS4b <- gh_NS4b + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS5 <- gh_NS5 + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    
+    fig1 <- ggarrange(gh_C + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      gh_prM + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      ncol = 2, nrow = 1, common.legend = FALSE, legend = "none")
+    fig2 <- ggarrange(gh_NS2b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      gh_NS4a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      ncol = 2, nrow = 1, common.legend = FALSE, legend = "none")
+    
+    fig3 <- ggarrange(fig1, 
+                      fig2, 
+                      gh_NS4b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      gh_NS2a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      nrow = 4, ncol = 1, legend = "none", common.legend = FALSE)    
+    
+    fig11 <- ggarrange(gh_C + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                       gh_prM + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       gh_NS2a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)) + 
+                         theme(axis.title.x = element_text(colour = "white")),
+                       gh_NS2b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       gh_NS4a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       ncol = 5, nrow = 1, widths = c(1, 1.5, 2.25, 1.25, 1.25), common.legend = FALSE, legend = "none")
+    
+    fig12 <- ggarrange(gh_NS1 + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                       gh_E + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)) ,
+                       ncol = 2, nrow = 1, widths = c(1, 1.4), common.legend = FALSE, legend = "none")
+    
+    fig13 <- ggarrange(gh_NS4b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                       gh_NS3 + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       ncol = 2, nrow = 1, widths = c(1, 2.4), common.legend = FALSE, legend = "none")
+    gempty <- ggplot(tep_df) + theme_void()
+    fig_tmp <- ggarrange(gempty, 
+                         fig11,
+                         fig12,
+                         fig13,
+                         gh_NS5,
+                         ggarrange(gempty, g2, gempty, ncol = 3, nrow = 1, widths = c(0.25,1,0.25), legend = FALSE),
+                         ncol = 1, nrow = 6, heights = c(0.5, 2.5, 2.5, 2.5, 2.5, 1), legend = "none")
+    
+    fig_tmp <- annotate_figure(fig_tmp,
+                               left = text_grob("Number of epitopes", face = "bold", size = 11, rot = 90))
+
+    g_polygons_DENV1 <- fig_tmp         
+    
+    ggsave(filename = here("Figure", "Figure-S2A.tiff"), 
+       plot = g_polygons_DENV1, device = "tiff", 
+       width = 7.5, height = 7, units = "in", 
+       dpi = 300)
+    
+  }  
+  
+
+# DENV2 #####
+
+tep_df_I <- data.frame(values = vector(mode = "numeric"), 
+                       prot = vector(mode = "character"),
+                       class = vector(mode = "character"), 
+                       stringsAsFactors = FALSE)
+
+tep_df_II <- data.frame(values = vector(mode = "numeric"), 
+                       prot = vector(mode = "character"),
+                       class = vector(mode = "character"), 
+                       stringsAsFactors = FALSE)
+
+for (PROTEIN in proteins) {
+  
+  data_file <- here("Data/MSA_data", paste0(PROTEIN, " DENV2 MSA.fasta"))
+  align_MSA <- read.alignment(file = data_file, format = "fasta", forceToLower = FALSE)
+
+  data_file <- here("Data", "TepitopesDENV.fa")
+  Tepitopes_DENV <- read.fasta(file = data_file, seqtype = "AA", as.string = "TRUE")
+  temp <- tolower(as.character(Tepitopes_DENV))
+  teiptope_dict <- AAStringSet(temp)
+
+temp1 <- (vcountPDict(pdict = (teiptope_dict), 
+                          subject = AAStringSet(align_MSA$seq), 
+                          max.mismatch = NUM_MAX_MISMATCH))
+
+
+temp1_ep <- which(temp1 != 0, arr.ind = TRUE)
+
+as.data.frame(temp1_ep) -> temp1_ep
+temp1_ep %>% arrange(col) %>% 
+  group_by(row) %>% 
+  summarise(seqs = paste(col, collapse = ", ")) -> temp1_ep
+
+temp1_ep %>% separate(col = seqs, sep = ", ", into = "first", extra = "drop") -> temp1_ep
+
+temp1_ep$seqindex <- as.numeric(temp1_ep$first)
+temp1_ep$epindex <- as.numeric(temp1_ep$row)
+
+y <- data.frame(Epitope = rep("X",length(temp1_ep$row)),
+                start=rep(0,length(temp1_ep$row)), 
+                end=rep(0,length(temp1_ep$row)), 
+                stringsAsFactors = FALSE)
+
+    for (i in 1:length(temp1_ep$row)) {
+      temp <- (vmatchPattern(pattern = as.character(teiptope_dict[temp1_ep$epindex[i]]), 
+                             subject = align_MSA$seq[temp1_ep$seqindex[i]], 
+                             max.mismatch = NUM_MAX_MISMATCH))
+      y$start[i] <- as.double(IRanges::start(temp))
+      y$end[i] <- as.double(IRanges::end(temp))
+      y$Epitope[i] <- as.character(teiptope_dict[temp1_ep$epindex[i]]) %>% toupper()
+    }
+    
+    y$length <- y$end - y$start + 1
+    
+    y <- right_join(x = ExEpiTcell_DENV %>% 
+                      select(`Epitope Sequence`, `MHC Allele Classes`), 
+               y = y, by = c("Epitope Sequence" = "Epitope"))
+    
+    y_I <- y %>% filter(`MHC Allele Classes` == "I")
+    y_II <- y %>% filter(`MHC Allele Classes` == "II")
+    
+    tep_ind_I = vector()
+    for (i in 1:length(y_I$length)) {
+      if (!is.na(y_I[i,1])){
+        tep_ind_I = c(tep_ind_I, seq.int(from = y_I$start[i], to = y_I$end[i]))}
+    }
+    
+     tep_ind_II = vector()
+    for (i in 1:length(y_II$length)) {
+      if (!is.na(y_II[i,1])){
+        tep_ind_II = c(tep_ind_II, seq.int(from = y_II$start[i], to = y_II$end[i]))}
+    }
+
+tep_df_I <- bind_rows(tep_df_I, 
+                          data.frame(values = tep_ind_I, 
+                                     prot = rep(PROTEIN, length(tep_ind_I)),
+                                     class = rep("I", length(tep_ind_I)), 
+                                     stringsAsFactors = FALSE)) 
+
+tep_df_II <- bind_rows(tep_df_II, 
+                          data.frame(values = tep_ind_II, 
+                                     prot = rep(PROTEIN, length(tep_ind_II)),
+                                     class = rep("II", length(tep_ind_II)), 
+                                     stringsAsFactors = FALSE)) 
+     
+}
+
+
+  # plotting 
+  {   
+    tep_df <- rbind(tep_df_I, tep_df_II)
+
+    tep_df$prot <- factor(tep_df$prot, 
+                          levels = c("E", "prM", "C", "NS1", "NS2a", "NS2b", "NS3", "NS4a", "NS4b", "NS5"),
+                          labels = c("E", "prM", "C", "NS1", "NS2a", "NS2b", "NS3", "NS4a", "NS4b", "NS5"))
+    
+    { g <- ggplot(data = tep_df %>% filter(prot %in% c("NS5")), mapping = aes(x = values, color = class))
+      # g <- g + geom_histogram(binwidth = 1)
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + geom_area(stat = "bin", binwidth = 1, alpha = 0.25, position = "identity", aes(fill = class, y = ..count..))
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 900), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("Position") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      gh_NS5 <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS4a")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 127), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5)
+                                       # ,
+                                       # axis.text.y = element_blank(), axis.ticks.y = element_blank()
+                                       )
+      
+      gh_NS4a <- g}    
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS4b")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 250), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS4b <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS3")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 620), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS3 <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS2b")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 130), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS2b <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS2a")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 218), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("Position") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS2a <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS1")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 352), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS1 <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("C")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 100), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_C <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("prM")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 166), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_prM <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("E")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 495), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_E <- g}
+    
+    {g2 <- ggplot(data = data.frame(x = c(" Class I restricted", " Class II restricted"), y = 0), 
+                  mapping = aes(x = x, y = y, color = x))
+      g2 <- g2 + geom_text(aes(label = x, size = 2),  fontface = "bold") 
+      g2 <- g2 + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      g2 <- g2 + theme_void() + theme(legend.position = "none")
+      
+      g2 <- g2 + theme(plot.margin = unit(c(-10,0,0,0), "pt")) +  theme(
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()
+      )}
+    
+    gh_C <- gh_C + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_E <- gh_E + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_prM <- gh_prM + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS1 <- gh_NS1 + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS2a <- gh_NS2a + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS2b <- gh_NS2b + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS3 <- gh_NS3 + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS4a <- gh_NS4a + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS4b <- gh_NS4b + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS5 <- gh_NS5 + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    
+    fig1 <- ggarrange(gh_C + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      gh_prM + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      ncol = 2, nrow = 1, common.legend = FALSE, legend = "none")
+    fig2 <- ggarrange(gh_NS2b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      gh_NS4a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      ncol = 2, nrow = 1, common.legend = FALSE, legend = "none")
+    
+    fig3 <- ggarrange(fig1, 
+                      fig2, 
+                      gh_NS4b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      gh_NS2a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      nrow = 4, ncol = 1, legend = "none", common.legend = FALSE)    
+    
+    fig11 <- ggarrange(gh_C + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                       gh_prM + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       gh_NS2a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)) + 
+                         theme(axis.title.x = element_text(colour = "white")),
+                       gh_NS2b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       gh_NS4a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       ncol = 5, nrow = 1, widths = c(1, 1.5, 2.25, 1.25, 1.25), common.legend = FALSE, legend = "none")
+    
+    fig12 <- ggarrange(gh_NS1 + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                       gh_E + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)) ,
+                       ncol = 2, nrow = 1, widths = c(1, 1.4), common.legend = FALSE, legend = "none")
+    
+    fig13 <- ggarrange(gh_NS4b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                       gh_NS3 + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       ncol = 2, nrow = 1, widths = c(1, 2.4), common.legend = FALSE, legend = "none")
+    gempty <- ggplot(df) + theme_void()
+    fig_tmp <- ggarrange(gempty, 
+                         fig11,
+                         fig12,
+                         fig13,
+                         gh_NS5,
+                         ggarrange(gempty, g2, gempty, ncol = 3, nrow = 1, widths = c(0.25,1,0.25), legend = FALSE),
+                         ncol = 1, nrow = 6, heights = c(0.5, 2.5, 2.5, 2.5, 2.5, 1), legend = "none")
+    
+    fig_tmp <- annotate_figure(fig_tmp,
+                               left = text_grob("Number of epitopes", face = "bold", size = 11, rot = 90))
+
+    g_polygons_DENV2 <- fig_tmp         
+    
+  }  
+    
+
+# DENV3 #####
+
+tep_df_I <- data.frame(values = vector(mode = "numeric"), 
+                       prot = vector(mode = "character"),
+                       class = vector(mode = "character"), 
+                       stringsAsFactors = FALSE)
+
+tep_df_II <- data.frame(values = vector(mode = "numeric"), 
+                       prot = vector(mode = "character"),
+                       class = vector(mode = "character"), 
+                       stringsAsFactors = FALSE)
+
+for (PROTEIN in proteins) {
+  
+  data_file <- here("Data/MSA_data", paste0(PROTEIN, " DENV3 MSA.fasta"))
+  align_MSA <- read.alignment(file = data_file, format = "fasta", forceToLower = FALSE)
+
+  data_file <- here("Data", "TepitopesDENV.fa")
+  Tepitopes_DENV <- read.fasta(file = data_file, seqtype = "AA", as.string = "TRUE")
+  temp <- tolower(as.character(Tepitopes_DENV))
+  teiptope_dict <- AAStringSet(temp)
+
+temp1 <- (vcountPDict(pdict = (teiptope_dict), 
+                          subject = AAStringSet(align_MSA$seq), 
+                          max.mismatch = NUM_MAX_MISMATCH))
+
+
+temp1_ep <- which(temp1 != 0, arr.ind = TRUE)
+
+as.data.frame(temp1_ep) -> temp1_ep
+temp1_ep %>% arrange(col) %>% 
+  group_by(row) %>% 
+  summarise(seqs = paste(col, collapse = ", ")) -> temp1_ep
+
+temp1_ep %>% separate(col = seqs, sep = ", ", into = "first", extra = "drop") -> temp1_ep
+
+temp1_ep$seqindex <- as.numeric(temp1_ep$first)
+temp1_ep$epindex <- as.numeric(temp1_ep$row)
+
+y <- data.frame(Epitope = rep("X",length(temp1_ep$row)),
+                start=rep(0,length(temp1_ep$row)), 
+                end=rep(0,length(temp1_ep$row)), 
+                stringsAsFactors = FALSE)
+
+    for (i in 1:length(temp1_ep$row)) {
+      temp <- (vmatchPattern(pattern = as.character(teiptope_dict[temp1_ep$epindex[i]]), 
+                             subject = align_MSA$seq[temp1_ep$seqindex[i]], 
+                             max.mismatch = NUM_MAX_MISMATCH))
+      y$start[i] <- as.double(IRanges::start(temp))
+      y$end[i] <- as.double(IRanges::end(temp))
+      y$Epitope[i] <- as.character(teiptope_dict[temp1_ep$epindex[i]]) %>% toupper()
+    }
+    
+    y$length <- y$end - y$start + 1
+    
+    y <- right_join(x = ExEpiTcell_DENV %>% 
+                      select(`Epitope Sequence`, `MHC Allele Classes`), 
+               y = y, by = c("Epitope Sequence" = "Epitope"))
+    
+    y_I <- y %>% filter(`MHC Allele Classes` == "I")
+    y_II <- y %>% filter(`MHC Allele Classes` == "II")
+    
+    tep_ind_I = vector()
+    for (i in 1:length(y_I$length)) {
+      if (!is.na(y_I[i,1])){
+        tep_ind_I = c(tep_ind_I, seq.int(from = y_I$start[i], to = y_I$end[i]))}
+    }
+    
+     tep_ind_II = vector()
+    for (i in 1:length(y_II$length)) {
+      if (!is.na(y_II[i,1])){
+        tep_ind_II = c(tep_ind_II, seq.int(from = y_II$start[i], to = y_II$end[i]))}
+    }
+
+tep_df_I <- bind_rows(tep_df_I, 
+                          data.frame(values = tep_ind_I, 
+                                     prot = rep(PROTEIN, length(tep_ind_I)),
+                                     class = rep("I", length(tep_ind_I)), 
+                                     stringsAsFactors = FALSE)) 
+
+tep_df_II <- bind_rows(tep_df_II, 
+                          data.frame(values = tep_ind_II, 
+                                     prot = rep(PROTEIN, length(tep_ind_II)),
+                                     class = rep("II", length(tep_ind_II)), 
+                                     stringsAsFactors = FALSE)) 
+     
+}
+
+
+  # plotting 
+  {   
+    tep_df <- rbind(tep_df_I, tep_df_II)
+
+    tep_df$prot <- factor(tep_df$prot, 
+                          levels = c("E", "prM", "C", "NS1", "NS2a", "NS2b", "NS3", "NS4a", "NS4b", "NS5"),
+                          labels = c("E", "prM", "C", "NS1", "NS2a", "NS2b", "NS3", "NS4a", "NS4b", "NS5"))
+    
+    { g <- ggplot(data = tep_df %>% filter(prot %in% c("NS5")), mapping = aes(x = values, color = class))
+      # g <- g + geom_histogram(binwidth = 1)
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + geom_area(stat = "bin", binwidth = 1, alpha = 0.25, position = "identity", aes(fill = class, y = ..count..))
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 900), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("Position") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      gh_NS5 <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS4a")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 127), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5)
+                                       # ,
+                                       # axis.text.y = element_blank(), axis.ticks.y = element_blank()
+                                       )
+      
+      gh_NS4a <- g}    
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS4b")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 250), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS4b <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS3")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 620), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS3 <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS2b")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 130), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS2b <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS2a")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 218), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("Position") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS2a <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS1")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 352), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS1 <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("C")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 100), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_C <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("prM")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 166), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_prM <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("E")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 495), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_E <- g}
+    
+    {g2 <- ggplot(data = data.frame(x = c(" Class I restricted", " Class II restricted"), y = 0), 
+                  mapping = aes(x = x, y = y, color = x))
+      g2 <- g2 + geom_text(aes(label = x, size = 2),  fontface = "bold") 
+      g2 <- g2 + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      g2 <- g2 + theme_void() + theme(legend.position = "none")
+      
+      g2 <- g2 + theme(plot.margin = unit(c(-10,0,0,0), "pt")) +  theme(
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()
+      )}
+    
+    gh_C <- gh_C + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_E <- gh_E + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_prM <- gh_prM + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS1 <- gh_NS1 + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS2a <- gh_NS2a + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS2b <- gh_NS2b + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS3 <- gh_NS3 + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS4a <- gh_NS4a + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS4b <- gh_NS4b + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS5 <- gh_NS5 + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    
+    fig1 <- ggarrange(gh_C + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      gh_prM + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      ncol = 2, nrow = 1, common.legend = FALSE, legend = "none")
+    fig2 <- ggarrange(gh_NS2b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      gh_NS4a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      ncol = 2, nrow = 1, common.legend = FALSE, legend = "none")
+    
+    fig3 <- ggarrange(fig1, 
+                      fig2, 
+                      gh_NS4b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      gh_NS2a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      nrow = 4, ncol = 1, legend = "none", common.legend = FALSE)    
+    
+    fig11 <- ggarrange(gh_C + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                       gh_prM + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       gh_NS2a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)) + 
+                         theme(axis.title.x = element_text(colour = "white")),
+                       gh_NS2b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       gh_NS4a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       ncol = 5, nrow = 1, widths = c(1, 1.5, 2.25, 1.25, 1.25), common.legend = FALSE, legend = "none")
+    
+    fig12 <- ggarrange(gh_NS1 + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                       gh_E + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)) ,
+                       ncol = 2, nrow = 1, widths = c(1, 1.4), common.legend = FALSE, legend = "none")
+    
+    fig13 <- ggarrange(gh_NS4b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                       gh_NS3 + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       ncol = 2, nrow = 1, widths = c(1, 2.4), common.legend = FALSE, legend = "none")
+    gempty <- ggplot(df) + theme_void()
+    fig_tmp <- ggarrange(gempty, 
+                         fig11,
+                         fig12,
+                         fig13,
+                         gh_NS5,
+                         ggarrange(gempty, g2, gempty, ncol = 3, nrow = 1, widths = c(0.25,1,0.25), legend = FALSE),
+                         ncol = 1, nrow = 6, heights = c(0.5, 2.5, 2.5, 2.5, 2.5, 1), legend = "none")
+    
+    fig_tmp <- annotate_figure(fig_tmp,
+                               left = text_grob("Number of epitopes", face = "bold", size = 11, rot = 90))
+
+    g_polygons_DENV3 <- fig_tmp         
+    
+  }  
+
+# DENV4 #####
+
+tep_df_I <- data.frame(values = vector(mode = "numeric"), 
+                       prot = vector(mode = "character"),
+                       class = vector(mode = "character"), 
+                       stringsAsFactors = FALSE)
+
+tep_df_II <- data.frame(values = vector(mode = "numeric"), 
+                       prot = vector(mode = "character"),
+                       class = vector(mode = "character"), 
+                       stringsAsFactors = FALSE)
+
+for (PROTEIN in proteins) {
+  
+  data_file <- here("Data/MSA_data", paste0(PROTEIN, " DENV4 MSA.fasta"))
+  align_MSA <- read.alignment(file = data_file, format = "fasta", forceToLower = FALSE)
+
+  data_file <- here("Data", "TepitopesDENV.fa")
+  Tepitopes_DENV <- read.fasta(file = data_file, seqtype = "AA", as.string = "TRUE")
+  temp <- tolower(as.character(Tepitopes_DENV))
+  teiptope_dict <- AAStringSet(temp)
+
+temp1 <- (vcountPDict(pdict = (teiptope_dict), 
+                          subject = AAStringSet(align_MSA$seq), 
+                          max.mismatch = NUM_MAX_MISMATCH))
+
+
+temp1_ep <- which(temp1 != 0, arr.ind = TRUE)
+
+as.data.frame(temp1_ep) -> temp1_ep
+temp1_ep %>% arrange(col) %>% 
+  group_by(row) %>% 
+  summarise(seqs = paste(col, collapse = ", ")) -> temp1_ep
+
+temp1_ep %>% separate(col = seqs, sep = ", ", into = "first", extra = "drop") -> temp1_ep
+
+temp1_ep$seqindex <- as.numeric(temp1_ep$first)
+temp1_ep$epindex <- as.numeric(temp1_ep$row)
+
+y <- data.frame(Epitope = rep("X",length(temp1_ep$row)),
+                start=rep(0,length(temp1_ep$row)), 
+                end=rep(0,length(temp1_ep$row)), 
+                stringsAsFactors = FALSE)
+
+    for (i in 1:length(temp1_ep$row)) {
+      temp <- (vmatchPattern(pattern = as.character(teiptope_dict[temp1_ep$epindex[i]]), 
+                             subject = align_MSA$seq[temp1_ep$seqindex[i]], 
+                             max.mismatch = NUM_MAX_MISMATCH))
+      y$start[i] <- as.double(IRanges::start(temp))
+      y$end[i] <- as.double(IRanges::end(temp))
+      y$Epitope[i] <- as.character(teiptope_dict[temp1_ep$epindex[i]]) %>% toupper()
+    }
+    
+    y$length <- y$end - y$start + 1
+    
+    y <- right_join(x = ExEpiTcell_DENV %>% 
+                      select(`Epitope Sequence`, `MHC Allele Classes`), 
+               y = y, by = c("Epitope Sequence" = "Epitope"))
+    
+    y_I <- y %>% filter(`MHC Allele Classes` == "I")
+    y_II <- y %>% filter(`MHC Allele Classes` == "II")
+    
+    tep_ind_I = vector()
+    for (i in 1:length(y_I$length)) {
+      if (!is.na(y_I[i,1])){
+        tep_ind_I = c(tep_ind_I, seq.int(from = y_I$start[i], to = y_I$end[i]))}
+    }
+    
+     tep_ind_II = vector()
+    for (i in 1:length(y_II$length)) {
+      if (!is.na(y_II[i,1])){
+        tep_ind_II = c(tep_ind_II, seq.int(from = y_II$start[i], to = y_II$end[i]))}
+    }
+
+tep_df_I <- bind_rows(tep_df_I, 
+                          data.frame(values = tep_ind_I, 
+                                     prot = rep(PROTEIN, length(tep_ind_I)),
+                                     class = rep("I", length(tep_ind_I)), 
+                                     stringsAsFactors = FALSE)) 
+
+tep_df_II <- bind_rows(tep_df_II, 
+                          data.frame(values = tep_ind_II, 
+                                     prot = rep(PROTEIN, length(tep_ind_II)),
+                                     class = rep("II", length(tep_ind_II)), 
+                                     stringsAsFactors = FALSE)) 
+     
+}
+
+
+  # plotting 
+  {   
+    tep_df <- rbind(tep_df_I, tep_df_II)
+
+    tep_df$prot <- factor(tep_df$prot, 
+                          levels = c("E", "prM", "C", "NS1", "NS2a", "NS2b", "NS3", "NS4a", "NS4b", "NS5"),
+                          labels = c("E", "prM", "C", "NS1", "NS2a", "NS2b", "NS3", "NS4a", "NS4b", "NS5"))
+    
+    { g <- ggplot(data = tep_df %>% filter(prot %in% c("NS5")), mapping = aes(x = values, color = class))
+      # g <- g + geom_histogram(binwidth = 1)
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + geom_area(stat = "bin", binwidth = 1, alpha = 0.25, position = "identity", aes(fill = class, y = ..count..))
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 900), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("Position") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      gh_NS5 <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS4a")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 127), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5)
+                                       # ,
+                                       # axis.text.y = element_blank(), axis.ticks.y = element_blank()
+                                       )
+      
+      gh_NS4a <- g}    
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS4b")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 250), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS4b <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS3")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 620), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS3 <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS2b")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 130), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS2b <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS2a")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 218), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("Position") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS2a <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("NS1")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 352), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_NS1 <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("C")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 100), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_C <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("prM")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 166), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_prM <- g}
+    
+    {    g <- ggplot(data = tep_df %>% filter(prot %in% c("E")), mapping = aes(x = values, y = ..count.., color = class))
+      # g <- g + geom_histogram(binwidth = 1, color = brewer.pal(9, "Set1")[2])
+      # g <- g + geom_freqpoly(binwidth = 1, size = 0.5, position = "identity")
+      # g <- g + scale_color_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + geom_step(aes(y = ..count..), stat = "bin", binwidth = 1, position = "identity", size = 0.5, show.legend = FALSE)
+      g <- g + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      
+      g <- g + scale_fill_manual(labels = c("I", "II"), values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]), name = "MHC Allele Class")
+      g <- g + scale_x_continuous(breaks = seq.int(50, 900, 50), limits = c(1, 495), expand = c(0,5))
+      #g <- g + scale_y_continuous(breaks = seq.int(0, 12, 4), limits = c(0,12))
+      g <- g + ylab("") + xlab("") 
+      # + ggtitle("T cell epitopes coverage of DENV proteins")
+      # g <- g + facet_grid(rows = vars(prot), margins = FALSE, shrink = TRUE)
+      g <- g + facet_wrap(facets = vars(prot), shrink = TRUE, scales = "free_x", nrow = 1)
+      g <- g + theme_minimal() + theme(strip.background = element_rect(color = "white", fill = "grey95"), 
+                                       legend.position = "bottom", 
+                                       axis.title.y = element_text(margin = margin(t=50, r = 1, b = 1, l = 1), hjust = 0.5),
+                                       axis.ticks = element_line(), panel.grid.minor = element_blank(),
+                                       strip.text = element_text(face = "bold", size = 10), 
+                                       plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+      
+      gh_E <- g}
+    
+    {g2 <- ggplot(data = data.frame(x = c(" Class I restricted", " Class II restricted"), y = 0), 
+                  mapping = aes(x = x, y = y, color = x))
+      g2 <- g2 + geom_text(aes(label = x, size = 2),  fontface = "bold") 
+      g2 <- g2 + scale_color_manual(values = c(brewer.pal(9, "Set1")[2], brewer.pal(9, "Set1")[3]))
+      g2 <- g2 + theme_void() + theme(legend.position = "none")
+      
+      g2 <- g2 + theme(plot.margin = unit(c(-10,0,0,0), "pt")) +  theme(
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()
+      )}
+    
+    gh_C <- gh_C + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_E <- gh_E + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_prM <- gh_prM + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS1 <- gh_NS1 + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS2a <- gh_NS2a + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS2b <- gh_NS2b + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS3 <- gh_NS3 + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS4a <- gh_NS4a + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS4b <- gh_NS4b + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    gh_NS5 <- gh_NS5 + geom_hline(yintercept = 0, show.legend = FALSE, color = "grey60", size = 0.5)
+    
+    fig1 <- ggarrange(gh_C + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      gh_prM + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      ncol = 2, nrow = 1, common.legend = FALSE, legend = "none")
+    fig2 <- ggarrange(gh_NS2b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      gh_NS4a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      ncol = 2, nrow = 1, common.legend = FALSE, legend = "none")
+    
+    fig3 <- ggarrange(fig1, 
+                      fig2, 
+                      gh_NS4b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      gh_NS2a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                      nrow = 4, ncol = 1, legend = "none", common.legend = FALSE)    
+    
+    fig11 <- ggarrange(gh_C + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                       gh_prM + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       gh_NS2a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)) + 
+                         theme(axis.title.x = element_text(colour = "white")),
+                       gh_NS2b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       gh_NS4a + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       ncol = 5, nrow = 1, widths = c(1, 1.5, 2.25, 1.25, 1.25), common.legend = FALSE, legend = "none")
+    
+    fig12 <- ggarrange(gh_NS1 + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                       gh_E + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)) ,
+                       ncol = 2, nrow = 1, widths = c(1, 1.4), common.legend = FALSE, legend = "none")
+    
+    fig13 <- ggarrange(gh_NS4b + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)), 
+                       gh_NS3 + theme(panel.border = element_blank(), plot.margin = margin(0, 10, 0, 0)),
+                       ncol = 2, nrow = 1, widths = c(1, 2.4), common.legend = FALSE, legend = "none")
+    gempty <- ggplot(df) + theme_void()
+    fig_tmp <- ggarrange(gempty, 
+                         fig11,
+                         fig12,
+                         fig13,
+                         gh_NS5,
+                         ggarrange(gempty, g2, gempty, ncol = 3, nrow = 1, widths = c(0.25,1,0.25), legend = FALSE),
+                         ncol = 1, nrow = 6, heights = c(0.5, 2.5, 2.5, 2.5, 2.5, 1), legend = "none")
+    
+    fig_tmp <- annotate_figure(fig_tmp,
+                               left = text_grob("Number of epitopes", face = "bold", size = 11, rot = 90))
+
+    g_polygons_DENV4 <- fig_tmp         
+    
+  }  
+    
+ggsave(filename = here("Figure", "Figure-S2A.png"), 
+       plot = g_polygons_DENV2, device = "png", 
+       width = 7.5, height = 7, units = "in", 
+       dpi = 300)
+
+ggsave(filename = here("Figure", "Figure-S2B.png"), 
+       plot = g_polygons_DENV3, device = "png", 
+       width = 7.5, height = 7, units = "in", 
+       dpi = 300)
+    
+ggsave(filename = here("Figure", "Figure-S2C.png"), 
+       plot = g_polygons_DENV4, device = "png", 
+       width = 7.5, height = 7, units = "in", 
+       dpi = 300)
+
+```
+
